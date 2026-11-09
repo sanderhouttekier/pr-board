@@ -20,6 +20,9 @@ const auth = async () => AUTH;
 const GH_ORG_1 = 'https://api.github.com/orgs/acme-corp/repos?type=sources&per_page=100';
 const GH_ORG_2 = 'https://api.github.com/organizations/1/repos?type=sources&per_page=100&page=2';
 const GH_USER = 'https://api.github.com/users/ada/repos?type=owner&per_page=100';
+const GH_ADA_ORG = 'https://api.github.com/orgs/ada/repos?type=sources&per_page=100';
+const GH_OWN_1 = 'https://api.github.com/user/repos?affiliation=owner&per_page=100';
+const GH_OWN_2 = 'https://api.github.com/user/repos?affiliation=owner&per_page=100&page=2';
 const BB_1 = 'https://api.bitbucket.org/2.0/repositories/acme?pagelen=100&sort=-updated_on&fields=values.slug,values.parent.full_name,values.updated_on,values.mainbranch.name,next';
 const BB_2 = 'https://api.bitbucket.org/2.0/repositories/acme?pagelen=100&sort=-updated_on&fields=values.slug%2Cvalues.parent.full_name%2Cvalues.updated_on%2Cvalues.mainbranch.name%2Cnext&page=2';
 
@@ -58,7 +61,7 @@ test('discoverGithub: all pages of the org listing, archived and disabled droppe
     { name: 'acme-app', defaultBranch: 'develop' },
     { name: 'acme-status', defaultBranch: 'main' },
   ]);
-  assert.deepEqual(calls.map((c) => c.url), [GH_ORG_1, GH_ORG_2]);
+  assert.deepEqual(calls.map((c) => c.url), [GH_ORG_1, GH_ORG_2], 'an org never calls /user/repos');
   for (const c of calls) {
     assert.equal(c.init.method, 'GET');
     assert.equal(c.init.headers.Authorization, AUTH);
@@ -66,11 +69,40 @@ test('discoverGithub: all pages of the org listing, archived and disabled droppe
   }
 });
 
-test('discoverGithub: a 404 on the org falls back to the user listing and drops forks', async () => {
-  const { http, calls } = httpOver({ [GH_USER]: { file: 'github/discover-user.json' } });
+test("discoverGithub: a 404 on the org lists the token's own repos (private too), only the owner's, all pages", async () => {
+  const { http, calls } = httpOver({
+    [GH_OWN_1]: { file: 'github/discover-own-1.json', link: `<${GH_OWN_2}>; rel="next", <${GH_OWN_2}>; rel="last"` },
+    [GH_OWN_2]: { file: 'github/discover-own-2.json' },
+    [GH_USER]: { file: 'github/discover-user.json' },
+  });
+  const repos = await discoverGithub({ http, auth, owner: 'ada' });
+  assert.deepEqual(repos, [
+    { name: 'acme-notes', defaultBranch: 'main' },
+    { name: 'acme-site', defaultBranch: 'gh-pages' },
+    { name: 'acme-scratch', defaultBranch: 'main' },
+  ], 'other owners dropped, owner matched case-insensitively, forks and archived dropped');
+  assert.deepEqual(calls.map((c) => c.url), [GH_ADA_ORG, GH_OWN_1, GH_OWN_2], 'no public user listing needed');
+  assert.ok(calls.every((c) => c.init.method === 'GET' && c.init.headers.Authorization === AUTH));
+});
+
+test("discoverGithub: a 404 on the org and nothing of the owner's in /user/repos falls back to the public user listing", async () => {
+  const { http, calls } = httpOver({
+    [GH_OWN_1]: { body: [{ name: 'acme-api', owner: { login: 'acme-corp' }, fork: false, archived: false, disabled: false, default_branch: 'main' }] },
+    [GH_USER]: { file: 'github/discover-user.json' },
+  });
+  const repos = await discoverGithub({ http, auth, owner: 'ada' });
+  assert.deepEqual(repos, [{ name: 'acme-tools', defaultBranch: 'main' }], 'forks dropped');
+  assert.deepEqual(calls.map((c) => c.url), [GH_ADA_ORG, GH_OWN_1, GH_USER]);
+});
+
+test('discoverGithub: a failing /user/repos (e.g. 403) still falls back to the public user listing', async () => {
+  const { http, calls } = httpOver({
+    [GH_OWN_1]: { status: 403 },
+    [GH_USER]: { file: 'github/discover-user.json' },
+  });
   const repos = await discoverGithub({ http, auth, owner: 'ada' });
   assert.deepEqual(repos, [{ name: 'acme-tools', defaultBranch: 'main' }]);
-  assert.deepEqual(calls.map((c) => c.url), ['https://api.github.com/orgs/ada/repos?type=sources&per_page=100', GH_USER]);
+  assert.deepEqual(calls.map((c) => c.url), [GH_ADA_ORG, GH_OWN_1, GH_USER]);
 });
 
 test('discoverGithub: any other failure is thrown, without the user fallback', async () => {

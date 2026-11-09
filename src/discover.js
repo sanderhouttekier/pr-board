@@ -14,7 +14,11 @@ const enc = encodeURIComponent;
 const code = (s) => `\`${s}\``;
 const lower = (s) => String(s).toLowerCase();
 
-/** GitHub repos of an org (or, on a 404, a user) → [{ name, defaultBranch }], no forks, archived or disabled. */
+/**
+ * GitHub repos of an org → [{ name, defaultBranch }], no forks, archived or disabled.
+ * On a 404 the owner is a user: the token's own repos (`/user/repos`, private ones too) that this owner
+ * owns, else (the token is someone else's) the user's public repos.
+ */
 export async function discoverGithub({ http, auth, owner }) {
   const opts = { auth: await auth(), headers: GITHUB_HEADERS };
   let list;
@@ -22,7 +26,10 @@ export async function discoverGithub({ http, auth, owner }) {
     list = await http.getAll(`${GITHUB_API}/orgs/${enc(owner)}/repos?type=sources&per_page=100`, opts);
   } catch (err) {
     if (err?.status !== 404) throw err;
-    list = await http.getAll(`${GITHUB_API}/users/${enc(owner)}/repos?type=owner&per_page=100`, opts);
+    // A token without user context (or any failure here) falls back to the public listing below.
+    const own = await http.getAll(`${GITHUB_API}/user/repos?affiliation=owner&per_page=100`, opts).catch(() => []);
+    list = own.filter((r) => lower(r.owner?.login ?? '') === lower(owner));
+    if (!list.length) list = await http.getAll(`${GITHUB_API}/users/${enc(owner)}/repos?type=owner&per_page=100`, opts);
   }
   return list
     .filter((r) => !r.fork && !r.archived && !r.disabled)

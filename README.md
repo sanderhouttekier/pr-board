@@ -136,7 +136,7 @@ WSL counts as headless Linux: run the board from a terminal with env vars, or ru
 
 ## Repos and the Bitbucket rate limit
 
-Without `repos.<host>`, the board discovers the repos your token can see, at most once an hour: GitHub org (or user) repos without forks, archived or disabled ones, and Bitbucket workspace repos without forks.
+Without `repos.<host>`, the board discovers the repos your token can see, at most once an hour: GitHub org repos, or for a user the token's own repos (private ones too) when the token belongs to that user and else their public repos, without forks, archived or disabled ones, and Bitbucket workspace repos without forks.
 
 With `repos.<host>`, it shows exactly that list. A listed repo that discovery didn't return gives a warning ("`acme-web` not found, or the token can't see it").
 

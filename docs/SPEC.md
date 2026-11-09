@@ -440,7 +440,7 @@ For each miss, it prints the token reference and this OS's store command from "S
 
 At most once an hour per project and host (cached, with ETags), the source lists the repos the token can see:
 
-- GitHub: `GET /orgs/{owner}/repos?type=sources&per_page=100`, all pages. On a 404 (the owner is a user, not an org), it uses `GET /users/{owner}/repos?type=owner&per_page=100` and drops forks. It drops `archived` and `disabled` repos. It keeps `name` and `default_branch`. A fine-grained PAT needs Metadata: read.
+- GitHub: `GET /orgs/{owner}/repos?type=sources&per_page=100`, all pages. On a 404 (the owner is a user, not an org), it first uses `GET /user/repos?affiliation=owner&per_page=100`, all pages, and keeps the repos whose `owner.login` is the owner (case-insensitive), so the token holder's own private repos are included; a fine-grained PAT lists only its selected repos there. If that keeps none (the token is someone else's), it uses `GET /users/{owner}/repos?type=owner&per_page=100`, which lists public repos only. Either way it drops forks, `archived` and `disabled` repos. It keeps `name` and `default_branch`. A fine-grained PAT needs Metadata: read.
 - Bitbucket: `GET /2.0/repositories/{workspace}?pagelen=100&sort=-updated_on&fields=values.slug,values.parent.full_name,values.updated_on,values.mainbranch.name,next`, all pages. It drops forks (those with a `parent`). The token needs `read:repository:bitbucket` on top of `read:pullrequest:bitbucket`.
 
 The repo set of a project per host is:

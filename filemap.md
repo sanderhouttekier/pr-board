@@ -84,7 +84,7 @@ node:test suites; no live calls and no OS tools.
 
 ### Fixtures (made up, names from `projects/example.json`)
 
-- `test/fixtures/github/` — GitHub responses in the shape of real ones (`acme-corp/acme-api`, `acme-corp/acme-status`); `index.json` maps API path → file; `discover-org-1.json`/`discover-org-2.json` (org repo listing, two pages, archived and disabled repos) and `discover-user.json` (user listing with a fork); `lock-index.json` maps the lock reader's paths to `lock-*.json` (consumer `acme-api` composer files, `acme-corp/acme-shared` closed PRs, branch, compare, head lookup)
+- `test/fixtures/github/` — GitHub responses in the shape of real ones (`acme-corp/acme-api`, `acme-corp/acme-status`); `index.json` maps API path → file; `discover-org-1.json`/`discover-org-2.json` (org repo listing, two pages, archived and disabled repos) `discover-user.json` (public user listing with a fork) and `discover-own-1.json`/`discover-own-2.json` (`/user/repos`, two pages: another owner's repo, a fork, an archived one); `lock-index.json` maps the lock reader's paths to `lock-*.json` (consumer `acme-api` composer files, `acme-corp/acme-shared` closed PRs, branch, compare, head lookup)
 - `test/fixtures/bitbucket/` — Bitbucket GET bodies (workspace `acme`: `acme-backend`, `acme-web`, `acme-shared`) plus `routes.json` mapping each request URL to its file; `shared-merged-shop-42.json` (merged shared #7 for SHOP-42, used by the example project test); `discover-1.json`/`discover-2.json` (workspace repo listing, two pages, a fork)
 - `test/fixtures/jira/` — issue bodies (`SHOP-42`, `OPS-7`, a 404)
 - `test/fixtures/config/` — `broken/` (invalid `config.json`) and `board/` (config with good, broken-JSON, invalid, missing and broken-entry projects)

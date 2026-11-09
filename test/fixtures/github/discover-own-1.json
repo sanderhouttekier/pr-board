@@ -1,0 +1,89 @@
+[
+  {
+    "id": 301,
+    "node_id": "R_kgDO301",
+    "name": "acme-notes",
+    "full_name": "ada/acme-notes",
+    "private": true,
+    "owner": {
+      "login": "ada",
+      "type": "User"
+    },
+    "html_url": "https://github.com/ada/acme-notes",
+    "description": null,
+    "fork": false,
+    "url": "https://api.github.com/repos/ada/acme-notes",
+    "created_at": "2025-03-01T09:00:00Z",
+    "updated_at": "2026-11-01T10:00:00Z",
+    "pushed_at": "2026-11-01T10:00:00Z",
+    "archived": false,
+    "disabled": false,
+    "visibility": "private",
+    "default_branch": "main",
+    "permissions": {
+      "admin": true,
+      "maintain": true,
+      "push": true,
+      "triage": true,
+      "pull": true
+    }
+  },
+  {
+    "id": 302,
+    "node_id": "R_kgDO302",
+    "name": "acme-api",
+    "full_name": "acme-corp/acme-api",
+    "private": true,
+    "owner": {
+      "login": "acme-corp",
+      "type": "Organization"
+    },
+    "html_url": "https://github.com/acme-corp/acme-api",
+    "description": null,
+    "fork": false,
+    "url": "https://api.github.com/repos/acme-corp/acme-api",
+    "created_at": "2025-03-01T09:00:00Z",
+    "updated_at": "2026-11-01T10:00:00Z",
+    "pushed_at": "2026-11-01T10:00:00Z",
+    "archived": false,
+    "disabled": false,
+    "visibility": "private",
+    "default_branch": "main",
+    "permissions": {
+      "admin": true,
+      "maintain": true,
+      "push": true,
+      "triage": true,
+      "pull": true
+    }
+  },
+  {
+    "id": 303,
+    "node_id": "R_kgDO303",
+    "name": "acme-site",
+    "full_name": "ada/acme-site",
+    "private": false,
+    "owner": {
+      "login": "ada",
+      "type": "User"
+    },
+    "html_url": "https://github.com/ada/acme-site",
+    "description": null,
+    "fork": false,
+    "url": "https://api.github.com/repos/ada/acme-site",
+    "created_at": "2025-03-01T09:00:00Z",
+    "updated_at": "2026-11-01T10:00:00Z",
+    "pushed_at": "2026-11-01T10:00:00Z",
+    "archived": false,
+    "disabled": false,
+    "visibility": "public",
+    "default_branch": "gh-pages",
+    "permissions": {
+      "admin": true,
+      "maintain": true,
+      "push": true,
+      "triage": true,
+      "pull": true
+    }
+  }
+]
