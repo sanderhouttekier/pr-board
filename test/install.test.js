@@ -319,9 +319,11 @@ test('storeCommand: this OS\'s command from "Storing a token", ref quoted only w
   assert.equal(storeCommand('win32', 'my ref'), 'cmdkey /generic:"my ref" /user:token /pass (it prompts)');
 });
 
-const CFG = path.resolve('/cfg');
+// The config dir as the injected (POSIX) platform sees it, and the file paths as loadBoard builds
+// them with the host's own path module (so the fake fs also matches on a Windows host).
+const CFG = '/cfg';
 const CONFIG_JSON = path.join(CFG, 'config.json');
-const ACME_JSON = path.join(CFG, 'projects', 'acme.json');
+const ACME_JSON = path.resolve(CFG, 'projects/acme.json');
 const re = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const project = (extra = {}) => JSON.stringify({
   title: 'Acme',
