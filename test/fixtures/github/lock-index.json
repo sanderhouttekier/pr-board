@@ -1,0 +1,8 @@
+{
+  "/repos/acme-corp/acme-api/contents/composer.json?ref=17681ff4900c41dcdb6a6310b45683504323fadf": "lock-api-composer.json",
+  "/repos/acme-corp/acme-api/contents/composer.lock?ref=17681ff4900c41dcdb6a6310b45683504323fadf": "lock-api-composer-lock.json",
+  "/repos/acme-corp/acme-shared/pulls?state=closed&sort=updated&direction=desc&per_page=50": "lock-shared-closed.json",
+  "/repos/acme-corp/acme-shared/branches/main": "lock-shared-branch-main.json",
+  "/repos/acme-corp/acme-shared/compare/e091054718b2bc350c5b704b7e18e6bdc0443b88...12925e26f48b04d0c804a9eae8251ca47ecf537e": "lock-shared-compare.json",
+  "/repos/acme-corp/acme-shared/pulls?state=all&head=acme-corp%3Afeature%2FSHOP-42-checkout&per_page=20": "lock-shared-by-branch.json"
+}

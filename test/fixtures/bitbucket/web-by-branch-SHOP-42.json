@@ -1,0 +1,35 @@
+{
+  "values": [
+    {
+      "id": 3487,
+      "title": "feat(checkout): send the order to every warehouse from the preview - SHOP-42",
+      "state": "OPEN",
+      "draft": false,
+      "merge_commit": null,
+      "author": {
+        "display_name": "Ada Example",
+        "uuid": "{f86c9766-3a9b-4cf6-8a5d-0c0fc2a70e76}"
+      },
+      "created_on": "2026-11-06T12:41:57.636374+00:00",
+      "updated_on": "2026-11-06T12:46:55.638360+00:00",
+      "destination": {
+        "branch": {
+          "name": "develop"
+        }
+      },
+      "source": {
+        "branch": {
+          "name": "feature/SHOP-42-checkout"
+        },
+        "commit": {
+          "hash": "825c9227687a"
+        }
+      },
+      "links": {
+        "html": {
+          "href": "https://bitbucket.org/acme/acme-web/pull-requests/3487"
+        }
+      }
+    }
+  ]
+}

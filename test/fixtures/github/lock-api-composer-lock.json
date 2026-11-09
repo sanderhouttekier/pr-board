@@ -1,0 +1,18 @@
+{
+  "_readme": ["This file locks the dependencies of your project to a known state"],
+  "content-hash": "0f4c1a9a2b6d8e3f5a7c9b1d3e5f7a9b",
+  "packages": [
+    {
+      "name": "guzzlehttp/guzzle",
+      "version": "7.9.2",
+      "source": { "type": "git", "url": "https://github.com/guzzle/guzzle.git", "reference": "d281ed313b989f213357e3be1a179f02196ac99b" }
+    }
+  ],
+  "packages-dev": [
+    {
+      "name": "acme/shared",
+      "version": "dev-feature/SHOP-42-checkout",
+      "source": { "type": "git", "url": "git@github.com:acme-corp/acme-shared.git", "reference": "e091054718b2bc350c5b704b7e18e6bdc0443b88" }
+    }
+  ]
+}

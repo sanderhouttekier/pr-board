@@ -1,0 +1,14 @@
+{
+  "packages": [
+    {
+      "name": "acme/shared",
+      "version": "dev-develop",
+      "source": {
+        "type": "git",
+        "url": "git@bitbucket.org:acme/acme-shared.git",
+        "reference": "597950ed303b893b4db8dd05ae30232070b828f2"
+      }
+    }
+  ],
+  "packages-dev": []
+}

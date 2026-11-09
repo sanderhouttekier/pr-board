@@ -1,0 +1,12 @@
+{
+  "name": "acme/api",
+  "type": "project",
+  "require": {
+    "php": ">=8.3",
+    "acme/shared": "dev-feature/SHOP-42-checkout",
+    "guzzlehttp/guzzle": "^7.8"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^11.0"
+  }
+}

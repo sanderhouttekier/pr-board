@@ -1,0 +1,89 @@
+[
+  {
+    "id": 104,
+    "node_id": "R_kgDO104",
+    "name": "acme-status",
+    "full_name": "acme-corp/acme-status",
+    "private": true,
+    "owner": {
+      "login": "acme-corp",
+      "type": "Organization"
+    },
+    "html_url": "https://github.com/acme-corp/acme-status",
+    "description": null,
+    "fork": false,
+    "url": "https://api.github.com/repos/acme-corp/acme-status",
+    "created_at": "2025-03-01T09:00:00Z",
+    "updated_at": "2026-11-01T10:00:00Z",
+    "pushed_at": "2026-11-01T10:00:00Z",
+    "archived": false,
+    "disabled": false,
+    "visibility": "private",
+    "default_branch": "main",
+    "permissions": {
+      "admin": false,
+      "maintain": false,
+      "push": true,
+      "triage": true,
+      "pull": true
+    }
+  },
+  {
+    "id": 105,
+    "node_id": "R_kgDO105",
+    "name": "acme-frozen",
+    "full_name": "acme-corp/acme-frozen",
+    "private": true,
+    "owner": {
+      "login": "acme-corp",
+      "type": "Organization"
+    },
+    "html_url": "https://github.com/acme-corp/acme-frozen",
+    "description": null,
+    "fork": false,
+    "url": "https://api.github.com/repos/acme-corp/acme-frozen",
+    "created_at": "2025-03-01T09:00:00Z",
+    "updated_at": "2026-11-01T10:00:00Z",
+    "pushed_at": "2026-11-01T10:00:00Z",
+    "archived": false,
+    "disabled": true,
+    "visibility": "private",
+    "default_branch": "main",
+    "permissions": {
+      "admin": false,
+      "maintain": false,
+      "push": true,
+      "triage": true,
+      "pull": true
+    }
+  },
+  {
+    "id": 106,
+    "node_id": "R_kgDO106",
+    "name": "acme-legacy",
+    "full_name": "acme-corp/acme-legacy",
+    "private": true,
+    "owner": {
+      "login": "acme-corp",
+      "type": "Organization"
+    },
+    "html_url": "https://github.com/acme-corp/acme-legacy",
+    "description": null,
+    "fork": false,
+    "url": "https://api.github.com/repos/acme-corp/acme-legacy",
+    "created_at": "2025-03-01T09:00:00Z",
+    "updated_at": "2026-11-01T10:00:00Z",
+    "pushed_at": "2026-11-01T10:00:00Z",
+    "archived": true,
+    "disabled": false,
+    "visibility": "private",
+    "default_branch": "master",
+    "permissions": {
+      "admin": false,
+      "maintain": false,
+      "push": true,
+      "triage": true,
+      "pull": true
+    }
+  }
+]

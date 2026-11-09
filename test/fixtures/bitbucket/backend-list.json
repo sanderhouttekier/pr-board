@@ -1,0 +1,39 @@
+{
+  "values": [
+    {
+      "id": 2504,
+      "title": "feat(checkout): send the order to every warehouse, with the shop language - SHOP-42",
+      "description": "Sends the order to every warehouse.\n\nhttps://trello.com/c/AbC123/95-checkout",
+      "summary": {
+        "raw": "Sends the order to every warehouse.\n\nhttps://trello.com/c/AbC123/95-checkout"
+      },
+      "state": "OPEN",
+      "draft": false,
+      "merge_commit": null,
+      "author": {
+        "display_name": "Ada Example",
+        "uuid": "{f86c9766-3a9b-4cf6-8a5d-0c0fc2a70e76}"
+      },
+      "created_on": "2026-11-06T12:41:56.187298+00:00",
+      "updated_on": "2026-11-06T13:47:54.412707+00:00",
+      "destination": {
+        "branch": {
+          "name": "develop"
+        }
+      },
+      "source": {
+        "branch": {
+          "name": "feature/SHOP-42-checkout"
+        },
+        "commit": {
+          "hash": "5eefa8141168"
+        }
+      },
+      "links": {
+        "html": {
+          "href": "https://bitbucket.org/acme/acme-backend/pull-requests/2504"
+        }
+      }
+    }
+  ]
+}

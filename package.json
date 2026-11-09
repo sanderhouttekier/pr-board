@@ -1,0 +1,15 @@
+{
+  "name": "pr-board",
+  "description": "A local, read-only page for the open pull requests of your projects on GitHub and Bitbucket, with Jira status.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sanderhouttekier/pr-board.git"
+  },
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "test": "node --test",
+    "start": "node src/server.js"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "title": "Acme invalid",
+  "hosts": {},
+  "tickets": [
+    { "prefix": "SHOP", "browse": null, "jira": "main" }
+  ]
+}

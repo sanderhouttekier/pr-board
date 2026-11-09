@@ -1,0 +1,39 @@
+{
+  "values": [
+    {
+      "id": 215,
+      "title": "feat(orders): send an order to every warehouse, with its language - SHOP-42",
+      "description": "Shared checkout model.",
+      "summary": {
+        "raw": "Shared checkout model."
+      },
+      "state": "OPEN",
+      "draft": false,
+      "merge_commit": null,
+      "author": {
+        "display_name": "Ada Example",
+        "uuid": "{f86c9766-3a9b-4cf6-8a5d-0c0fc2a70e76}"
+      },
+      "created_on": "2026-11-06T12:41:54.627341+00:00",
+      "updated_on": "2026-11-06T12:43:24.759865+00:00",
+      "destination": {
+        "branch": {
+          "name": "develop"
+        }
+      },
+      "source": {
+        "branch": {
+          "name": "feature/SHOP-42-checkout"
+        },
+        "commit": {
+          "hash": "788d0ba1c51f"
+        }
+      },
+      "links": {
+        "html": {
+          "href": "https://bitbucket.org/acme/acme-shared/pull-requests/215"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "$schema": "https://raw.githubusercontent.com/sanderhouttekier/pr-board/main/projects/project.schema.json",
+  "title": "Acme",
+  "hosts": {
+    "github": { "owner": "acme-corp" },
+    "bitbucket": { "workspace": "acme" }
+  },
+  "repos": {
+    "bitbucket": ["acme-shared", "acme-backend", "acme-worker", "acme-web"]
+  },
+  "aliases": {
+    "acme-shared": "shared",
+    "acme-backend": "backend",
+    "acme-worker": "worker",
+    "acme-web": "web"
+  },
+  "tickets": [
+    { "prefix": "SHOP", "browse": "https://jira.example.com/browse/{key}", "jira": "main" },
+    { "prefix": "OPS", "browse": null },
+    { "link": "trello.com/c/" }
+  ],
+  "jira": {
+    "main": { "cloudId": "00000000-0000-4000-8000-000000000000" }
+  },
+  "sharedPackages": [
+    {
+      "repo": "acme-shared",
+      "kind": "composer",
+      "package": "acme/shared",
+      "consumers": ["acme-backend", "acme-worker"]
+    }
+  ],
+  "fixPrompts": {
+    "lock-missing": "Edit only `reference` and `time` of the package in composer.lock, and only if its composer.json is unchanged between the two commits; otherwise stop and tell me. Git only, no local composer run.",
+    "lock-unpin": "Edit only `reference` and `time` of the package in composer.lock, and only if its composer.json is unchanged between the two commits; otherwise stop and tell me. Git only, no local composer run.",
+    "group": "Wait for CI on the shared package before you update a lock."
+  }
+}

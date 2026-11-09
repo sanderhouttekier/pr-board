@@ -1,0 +1,15 @@
+{
+  "total_count": 1,
+  "workflow_runs": [
+    {
+      "id": 42219376332,
+      "name": "CI",
+      "workflow_id": 339153722,
+      "head_sha": "be731f0e0dc81f20344a7bd33d0510181fa9a511",
+      "head_branch": "feature/SHOP-42-checkout",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-06T12:39:44Z"
+    }
+  ]
+}

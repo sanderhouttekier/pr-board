@@ -1,0 +1,8 @@
+node_modules/
+.cache/
+*.log
+.DS_Store
+.scratch/
+.worktrees/
+/config.json
+/config.local.json

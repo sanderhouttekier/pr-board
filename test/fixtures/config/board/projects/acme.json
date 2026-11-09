@@ -1,0 +1,21 @@
+{
+  "title": "Acme",
+  "hosts": {
+    "github": { "owner": "acme-corp" },
+    "bitbucket": { "workspace": "acme" }
+  },
+  "repos": {
+    "bitbucket": ["acme-shared", "acme-backend"]
+  },
+  "tickets": [
+    { "prefix": "SHOP", "browse": "https://jira.example.com/browse/{key}", "jira": "main" }
+  ],
+  "jira": {
+    "main": { "cloudId": "00000000-0000-4000-8000-000000000000" }
+  },
+  "fixPrompts": {
+    "conflict": "   ",
+    "lock-mising": "typo",
+    "group": "Wait for CI on the shared package before you update a lock."
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/sanderhouttekier/pr-board/main/config.schema.json",
+  "title": "PR board personal config",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+    "intervalSec": { "type": "integer", "minimum": 30 },
+    "idleAfterSec": { "type": "integer", "minimum": 60 },
+    "idleIntervalSec": { "type": "integer", "minimum": 300 },
+    "staleDays": { "type": "integer", "minimum": 1 },
+    "behindWarn": { "type": "integer", "minimum": 1 },
+    "ghPath": { "type": "string", "minLength": 1 },
+    "credentials": { "$ref": "#/$defs/credentials" },
+    "projects": {
+      "type": "object",
+      "propertyNames": { "pattern": "^[a-z0-9][a-z0-9-]*$" },
+      "additionalProperties": {
+        "type": "object",
+        "required": ["file"],
+        "additionalProperties": false,
+        "properties": {
+          "file": { "type": "string", "minLength": 1 },
+          "credentials": { "$ref": "#/$defs/credentials" }
+        }
+      }
+    },
+    "mine": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": { "github": { "type": "string" }, "bitbucket": { "type": "string" } }
+    },
+    "fixNotes": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": { "github": { "type": "string" }, "bitbucket": { "type": "string" }, "all": { "type": "string" } }
+    }
+  },
+  "$defs": {
+    "credentials": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "github": {
+          "type": "object", "required": ["ref"], "additionalProperties": false,
+          "properties": { "ref": { "type": "string" } }
+        },
+        "bitbucket": { "$ref": "#/$defs/atlassian" },
+        "jira": { "$ref": "#/$defs/atlassian" }
+      }
+    },
+    "atlassian": {
+      "type": "object", "required": ["ref", "email"], "additionalProperties": false,
+      "properties": { "ref": { "type": "string", "minLength": 1 }, "email": { "type": "string", "pattern": "^[^@\\s]+@[^@\\s]+$" } }
+    }
+  }
+}

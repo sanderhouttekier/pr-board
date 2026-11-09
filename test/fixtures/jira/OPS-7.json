@@ -1,0 +1,9 @@
+{
+  "key": "OPS-7",
+  "fields": {
+    "status": {
+      "name": "In Progress"
+    },
+    "summary": "Rotate the warehouse API keys"
+  }
+}

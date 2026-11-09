@@ -1,0 +1,9 @@
+{
+  "key": "SHOP-42",
+  "fields": {
+    "status": {
+      "name": "PULL REQUEST"
+    },
+    "summary": "As a customer I want my order sent as a PDF to the warehouse and to my mailbox so the warehouse can contact me and I have a confirmation"
+  }
+}

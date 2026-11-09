@@ -1,0 +1,19 @@
+{
+  "/repos/acme-corp/acme-api/pulls?state=open&per_page=100": "api-pulls.json",
+  "/repos/acme-corp/acme-api/pulls/611": "api-pull-611.json",
+  "/repos/acme-corp/acme-api/actions/runs?head_sha=77db4402c2b17639560af95d54148ca05911ea2b&per_page=50": "api-runs-611.json",
+  "/repos/acme-corp/acme-api/pulls/598": "api-pull-598.json",
+  "/repos/acme-corp/acme-api/actions/runs?head_sha=17681ff4900c41dcdb6a6310b45683504323fadf&per_page=50": "api-runs-598.json",
+  "/repos/acme-corp/acme-api/pulls/584": "api-pull-584.json",
+  "/repos/acme-corp/acme-api/actions/runs?head_sha=e08dfef20dcb0e2d1750e8191303fa419ac46b46&per_page=50": "api-runs-584.json",
+  "/repos/acme-corp/acme-api/branches/main": "api-branch-main.json",
+  "/repos/acme-corp/acme-api/compare/83cf6bbba06a66b9a55c5748de62802273b6d076...77db4402c2b17639560af95d54148ca05911ea2b": "api-compare-611.json",
+  "/repos/acme-corp/acme-api/compare/83cf6bbba06a66b9a55c5748de62802273b6d076...17681ff4900c41dcdb6a6310b45683504323fadf": "api-compare-598.json",
+  "/repos/acme-corp/acme-api/compare/83cf6bbba06a66b9a55c5748de62802273b6d076...e08dfef20dcb0e2d1750e8191303fa419ac46b46": "api-compare-584.json",
+  "/repos/acme-corp/acme-status/pulls?state=open&per_page=100": "status-pulls.json",
+  "/repos/acme-corp/acme-status/pulls/42": "status-pull-42.json",
+  "/repos/acme-corp/acme-status/actions/runs?head_sha=be731f0e0dc81f20344a7bd33d0510181fa9a511&per_page=50": "status-runs-42.json",
+  "/repos/acme-corp/acme-status/branches/main": "status-branch-main.json",
+  "/repos/acme-corp/acme-status/compare/e8ef44b9abfef60b8005e0d6b23f4a6ad46b26d7...be731f0e0dc81f20344a7bd33d0510181fa9a511": "status-compare-42.json",
+  "/repos/acme-corp/acme-api/pulls?state=all&head=acme-corp%3Afeature%2FSHOP-42-checkout&per_page=20": "api-head-lookup.json"
+}

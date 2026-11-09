@@ -1,0 +1,16 @@
+[
+  {
+    "number": 8,
+    "state": "open",
+    "title": "feat(orders): order lines per warehouse - SHOP-42",
+    "html_url": "https://github.com/acme-corp/acme-shared/pull/8",
+    "draft": false,
+    "created_at": "2026-11-06T09:00:00Z",
+    "updated_at": "2026-11-06T09:30:00Z",
+    "closed_at": null,
+    "merged_at": null,
+    "user": { "login": "ada" },
+    "head": { "ref": "feature/SHOP-42-checkout", "sha": "979dc02bc7d844921d25b1c372d9a3201ffb9061" },
+    "base": { "ref": "main" }
+  }
+]

@@ -1,0 +1,27 @@
+{
+  "$schema": "https://raw.githubusercontent.com/sanderhouttekier/pr-board/main/config.schema.json",
+  "port": 7419,
+  "intervalSec": 300,
+  "idleAfterSec": 900,
+  "idleIntervalSec": 3600,
+  "staleDays": 14,
+  "behindWarn": 20,
+  "ghPath": "gh",
+  "credentials": {
+    "github": { "ref": "" },
+    "bitbucket": { "ref": "pr-board-bitbucket", "email": "you@example.com" },
+    "jira": { "ref": "pr-board-jira", "email": "you@example.com" }
+  },
+  "projects": {
+    "acme": {
+      "file": "projects/acme.json",
+      "credentials": {
+        "bitbucket": { "ref": "acme-bitbucket", "email": "you@acme.example" }
+      }
+    }
+  },
+  "fixNotes": {
+    "bitbucket": "Read pipelines through the Atlassian MCP.",
+    "all": ""
+  }
+}

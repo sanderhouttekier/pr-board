@@ -1,0 +1,27 @@
+{
+  "port": 7500,
+  "intervalSec": 600,
+  "colour": "red",
+  "credentials": {
+    "github": { "ref": "" },
+    "bitbucket": { "ref": "pr-board-bitbucket", "email": "you@example.com" },
+    "jira": { "ref": "pr-board-jira", "email": "you@example.com" }
+  },
+  "projects": {
+    "acme": {
+      "file": "projects/acme.json",
+      "label": "unknown entry key",
+      "credentials": {
+        "bitbucket": { "ref": "acme-bitbucket", "email": "you@acme.example" }
+      }
+    },
+    "acme-broken": { "file": "projects/broken.json" },
+    "acme-invalid": { "file": "projects/invalid.json" },
+    "acme-missing": { "file": "projects/missing.json" },
+    "acme-entry": { "fiel": "projects/acme.json" }
+  },
+  "fixNotes": {
+    "bitbucket": "Read pipelines through the Atlassian MCP.",
+    "all": "   "
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "status": "ahead",
+  "ahead_by": 2,
+  "behind_by": 0,
+  "total_commits": 2,
+  "commits": [
+    { "sha": "2566fb2c8633321d45ed13b859a3a5056dab242b", "commit": { "message": "Merge pull request #7 from acme-corp/feature/SHOP-42-checkout" } },
+    { "sha": "12925e26f48b04d0c804a9eae8251ca47ecf537e", "commit": { "message": "Merge pull request #3 from acme-corp/fix/trello-card" } }
+  ]
+}

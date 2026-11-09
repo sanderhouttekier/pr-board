@@ -1,0 +1,268 @@
+{
+  "values": [
+    {
+      "id": 214,
+      "title": "docs: work test-first (red-green-refactor)",
+      "state": "MERGED",
+      "draft": false,
+      "merge_commit": {
+        "hash": "1a9ce1309b56"
+      },
+      "author": {
+        "display_name": "Ada Example",
+        "uuid": "{f86c9766-3a9b-4cf6-8a5d-0c0fc2a70e76}"
+      },
+      "created_on": "2026-11-03T12:44:32.289104+00:00",
+      "updated_on": "2026-11-03T12:59:38.919712+00:00",
+      "destination": {
+        "branch": {
+          "name": "develop"
+        }
+      },
+      "source": {
+        "branch": {
+          "name": "docs/test-first"
+        },
+        "commit": {
+          "hash": "47aad769eb40"
+        }
+      },
+      "links": {
+        "html": {
+          "href": "https://bitbucket.org/acme/acme-shared/pull-requests/214"
+        }
+      }
+    },
+    {
+      "id": 213,
+      "title": "SHOP-41: filter offered products on offer type (product/tool)",
+      "state": "MERGED",
+      "draft": false,
+      "merge_commit": {
+        "hash": "597950ed303b"
+      },
+      "author": {
+        "display_name": "Ada Example",
+        "uuid": "{f86c9766-3a9b-4cf6-8a5d-0c0fc2a70e76}"
+      },
+      "created_on": "2026-11-03T11:16:11.089287+00:00",
+      "updated_on": "2026-11-03T12:15:21.211482+00:00",
+      "destination": {
+        "branch": {
+          "name": "develop"
+        }
+      },
+      "source": {
+        "branch": {
+          "name": "feature/SHOP-41-offer-type"
+        },
+        "commit": {
+          "hash": "2fa3a7b2dfb7"
+        }
+      },
+      "links": {
+        "html": {
+          "href": "https://bitbucket.org/acme/acme-shared/pull-requests/213"
+        }
+      }
+    },
+    {
+      "id": 212,
+      "title": "SHOP-40: filter offered products on partner instead of category",
+      "state": "MERGED",
+      "draft": false,
+      "merge_commit": {
+        "hash": "45fb7463c93e"
+      },
+      "author": {
+        "display_name": "Grace Example",
+        "uuid": "{10d7f8ee-824b-4438-965f-dad291bc31ac}"
+      },
+      "created_on": "2026-11-03T09:12:31.649202+00:00",
+      "updated_on": "2026-11-03T10:28:44.089698+00:00",
+      "destination": {
+        "branch": {
+          "name": "develop"
+        }
+      },
+      "source": {
+        "branch": {
+          "name": "feature/SHOP-40-partner-filter"
+        },
+        "commit": {
+          "hash": "ab0ead9bc536"
+        }
+      },
+      "links": {
+        "html": {
+          "href": "https://bitbucket.org/acme/acme-shared/pull-requests/212"
+        }
+      }
+    },
+    {
+      "id": 211,
+      "title": "SHOP-39: forward answers on the customer questions command",
+      "state": "MERGED",
+      "draft": false,
+      "merge_commit": {
+        "hash": "b830a1023458"
+      },
+      "author": {
+        "display_name": "Ada Example",
+        "uuid": "{f86c9766-3a9b-4cf6-8a5d-0c0fc2a70e76}"
+      },
+      "created_on": "2026-11-03T02:46:42.300468+00:00",
+      "updated_on": "2026-11-03T06:54:45.437309+00:00",
+      "destination": {
+        "branch": {
+          "name": "develop"
+        }
+      },
+      "source": {
+        "branch": {
+          "name": "feature/SHOP-39-follow-up"
+        },
+        "commit": {
+          "hash": "c1e282ca04c9"
+        }
+      },
+      "links": {
+        "html": {
+          "href": "https://bitbucket.org/acme/acme-shared/pull-requests/211"
+        }
+      }
+    },
+    {
+      "id": 210,
+      "title": "SHOP-38: require the order contact phone",
+      "state": "MERGED",
+      "draft": false,
+      "merge_commit": {
+        "hash": "2cb5ff7b8284"
+      },
+      "author": {
+        "display_name": "Grace Example",
+        "uuid": "{10d7f8ee-824b-4438-965f-dad291bc31ac}"
+      },
+      "created_on": "2026-11-02T07:59:42.475469+00:00",
+      "updated_on": "2026-11-02T08:58:18.407541+00:00",
+      "destination": {
+        "branch": {
+          "name": "develop"
+        }
+      },
+      "source": {
+        "branch": {
+          "name": "feature/SHOP-38-order-form"
+        },
+        "commit": {
+          "hash": "f7690ccc3ff5"
+        }
+      },
+      "links": {
+        "html": {
+          "href": "https://bitbucket.org/acme/acme-shared/pull-requests/210"
+        }
+      }
+    },
+    {
+      "id": 208,
+      "title": "Feature/SHOP-38 order form",
+      "state": "MERGED",
+      "draft": false,
+      "merge_commit": {
+        "hash": "56a0510b2df4"
+      },
+      "author": {
+        "display_name": "Grace Example",
+        "uuid": "{10d7f8ee-824b-4438-965f-dad291bc31ac}"
+      },
+      "created_on": "2026-10-29T13:30:28.702422+00:00",
+      "updated_on": "2026-11-01T15:20:44.384083+00:00",
+      "destination": {
+        "branch": {
+          "name": "develop"
+        }
+      },
+      "source": {
+        "branch": {
+          "name": "feature/SHOP-38-order-form"
+        },
+        "commit": {
+          "hash": "24934024c885"
+        }
+      },
+      "links": {
+        "html": {
+          "href": "https://bitbucket.org/acme/acme-shared/pull-requests/208"
+        }
+      }
+    },
+    {
+      "id": 209,
+      "title": "Remove deprecated package phpseclib.",
+      "state": "MERGED",
+      "draft": false,
+      "merge_commit": {
+        "hash": "f6d373babe35"
+      },
+      "author": {
+        "display_name": "Linus Example",
+        "uuid": "{5250331f-329a-494b-9f3b-93c9c38d9252}"
+      },
+      "created_on": "2026-10-30T09:55:38.462495+00:00",
+      "updated_on": "2026-10-30T09:57:58.751872+00:00",
+      "destination": {
+        "branch": {
+          "name": "develop"
+        }
+      },
+      "source": {
+        "branch": {
+          "name": "feature/remove-deprecated-php-package"
+        },
+        "commit": {
+          "hash": "8f7feb3d3c9b"
+        }
+      },
+      "links": {
+        "html": {
+          "href": "https://bitbucket.org/acme/acme-shared/pull-requests/209"
+        }
+      }
+    },
+    {
+      "id": 207,
+      "title": "Catalog items: GetOfferedProductItems command",
+      "state": "MERGED",
+      "draft": false,
+      "merge_commit": {
+        "hash": "f15e74719672"
+      },
+      "author": {
+        "display_name": "Ada Example",
+        "uuid": "{f86c9766-3a9b-4cf6-8a5d-0c0fc2a70e76}"
+      },
+      "created_on": "2026-10-27T01:29:41.179285+00:00",
+      "updated_on": "2026-10-27T01:40:55.314439+00:00",
+      "destination": {
+        "branch": {
+          "name": "develop"
+        }
+      },
+      "source": {
+        "branch": {
+          "name": "feature/catalog-items"
+        },
+        "commit": {
+          "hash": "a5417776e76a"
+        }
+      },
+      "links": {
+        "html": {
+          "href": "https://bitbucket.org/acme/acme-shared/pull-requests/207"
+        }
+      }
+    }
+  ]
+}

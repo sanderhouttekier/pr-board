@@ -1,0 +1,60 @@
+[
+  {
+    "id": 201,
+    "node_id": "R_kgDO201",
+    "name": "acme-tools",
+    "full_name": "ada/acme-tools",
+    "private": true,
+    "owner": {
+      "login": "ada",
+      "type": "User"
+    },
+    "html_url": "https://github.com/ada/acme-tools",
+    "description": null,
+    "fork": false,
+    "url": "https://api.github.com/repos/ada/acme-tools",
+    "created_at": "2025-03-01T09:00:00Z",
+    "updated_at": "2026-11-01T10:00:00Z",
+    "pushed_at": "2026-11-01T10:00:00Z",
+    "archived": false,
+    "disabled": false,
+    "visibility": "private",
+    "default_branch": "main",
+    "permissions": {
+      "admin": false,
+      "maintain": false,
+      "push": true,
+      "triage": true,
+      "pull": true
+    }
+  },
+  {
+    "id": 202,
+    "node_id": "R_kgDO202",
+    "name": "acme-api",
+    "full_name": "ada/acme-api",
+    "private": true,
+    "owner": {
+      "login": "ada",
+      "type": "User"
+    },
+    "html_url": "https://github.com/ada/acme-api",
+    "description": null,
+    "fork": true,
+    "url": "https://api.github.com/repos/ada/acme-api",
+    "created_at": "2025-03-01T09:00:00Z",
+    "updated_at": "2026-11-01T10:00:00Z",
+    "pushed_at": "2026-11-01T10:00:00Z",
+    "archived": false,
+    "disabled": false,
+    "visibility": "private",
+    "default_branch": "main",
+    "permissions": {
+      "admin": false,
+      "maintain": false,
+      "push": true,
+      "triage": true,
+      "pull": true
+    }
+  }
+]

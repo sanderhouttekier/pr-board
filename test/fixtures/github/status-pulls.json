@@ -1,0 +1,24 @@
+[
+  {
+    "number": 42,
+    "state": "open",
+    "title": "feat(delivery): order delivery state per warehouse and customer - SHOP-42",
+    "body": "Adds the delivery state per warehouse.\n\nhttps://trello.com/c/AbC123/95-delivery-state",
+    "html_url": "https://github.com/acme-corp/acme-status/pull/42",
+    "draft": false,
+    "created_at": "2026-11-06T12:39:40Z",
+    "updated_at": "2026-11-06T13:14:44Z",
+    "closed_at": null,
+    "merged_at": null,
+    "user": {
+      "login": "ada"
+    },
+    "head": {
+      "ref": "feature/SHOP-42-checkout",
+      "sha": "be731f0e0dc81f20344a7bd33d0510181fa9a511"
+    },
+    "base": {
+      "ref": "main"
+    }
+  }
+]

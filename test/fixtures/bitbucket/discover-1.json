@@ -1,0 +1,29 @@
+{
+  "values": [
+    {
+      "slug": "acme-backend",
+      "updated_on": "2026-11-06T13:47:54.412707+00:00",
+      "mainbranch": {
+        "name": "develop"
+      }
+    },
+    {
+      "slug": "acme-web",
+      "updated_on": "2026-11-06T09:12:00.000000+00:00",
+      "mainbranch": {
+        "name": "develop"
+      }
+    },
+    {
+      "slug": "acme-backend-fork",
+      "updated_on": "2026-11-05T08:00:00.000000+00:00",
+      "mainbranch": {
+        "name": "develop"
+      },
+      "parent": {
+        "full_name": "acme/acme-backend"
+      }
+    }
+  ],
+  "next": "https://api.bitbucket.org/2.0/repositories/acme?pagelen=100&sort=-updated_on&fields=values.slug%2Cvalues.parent.full_name%2Cvalues.updated_on%2Cvalues.mainbranch.name%2Cnext&page=2"
+}

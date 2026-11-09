@@ -1,0 +1,23 @@
+[
+  {
+    "number": 598,
+    "state": "open",
+    "title": "feat(partners): customer lookup for delivery and partners without a VAT number - SHOP-42",
+    "html_url": "https://github.com/acme-corp/acme-api/pull/598",
+    "draft": false,
+    "created_at": "2026-11-06T13:14:25Z",
+    "updated_at": "2026-11-06T13:14:50Z",
+    "closed_at": null,
+    "merged_at": null,
+    "user": {
+      "login": "ada"
+    },
+    "head": {
+      "ref": "feature/SHOP-42-checkout",
+      "sha": "17681ff4900c41dcdb6a6310b45683504323fadf"
+    },
+    "base": {
+      "ref": "main"
+    }
+  }
+]

@@ -1,0 +1,15 @@
+{
+  "total_count": 1,
+  "workflow_runs": [
+    {
+      "id": 42297774559,
+      "name": "CI",
+      "workflow_id": 336357268,
+      "head_sha": "e08dfef20dcb0e2d1750e8191303fa419ac46b46",
+      "head_branch": "feature/questions-via-publish",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-06T21:33:59Z"
+    }
+  ]
+}

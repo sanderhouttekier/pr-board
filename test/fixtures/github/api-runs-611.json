@@ -1,0 +1,15 @@
+{
+  "total_count": 1,
+  "workflow_runs": [
+    {
+      "id": 42298417572,
+      "name": "CI",
+      "workflow_id": 336357268,
+      "head_sha": "77db4402c2b17639560af95d54148ca05911ea2b",
+      "head_branch": "fix/create-check-followup",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-06T21:38:41Z"
+    }
+  ]
+}

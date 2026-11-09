@@ -1,0 +1,43 @@
+{
+  "values": [
+    {
+      "id": 7,
+      "title": "SHOP-42: send an order to every warehouse",
+      "state": "MERGED",
+      "draft": false,
+      "merge_commit": { "hash": "47aad769eb40" },
+      "author": { "display_name": "Ada Example", "uuid": "{f86c9766-3a9b-4cf6-8a5d-0c0fc2a70e76}" },
+      "created_on": "2026-11-04T09:00:00.000000+00:00",
+      "updated_on": "2026-11-05T10:00:00.000000+00:00",
+      "destination": { "branch": { "name": "develop" } },
+      "source": { "branch": { "name": "feature/SHOP-42-warehouses" }, "commit": { "hash": "5c0ffee0aa01" } },
+      "links": { "html": { "href": "https://bitbucket.org/acme/acme-shared/pull-requests/7" } }
+    },
+    {
+      "id": 6,
+      "title": "SHOP-42: order language field",
+      "state": "MERGED",
+      "draft": false,
+      "merge_commit": { "hash": "597950ed303b" },
+      "author": { "display_name": "Grace Example", "uuid": "{10d7f8ee-824b-4438-965f-dad291bc31ac}" },
+      "created_on": "2026-11-02T09:00:00.000000+00:00",
+      "updated_on": "2026-11-03T12:15:00.000000+00:00",
+      "destination": { "branch": { "name": "develop" } },
+      "source": { "branch": { "name": "feature/SHOP-42-language" }, "commit": { "hash": "5c0ffee0aa02" } },
+      "links": { "html": { "href": "https://bitbucket.org/acme/acme-shared/pull-requests/6" } }
+    },
+    {
+      "id": 5,
+      "title": "SHOP-40: filter offered products on partner",
+      "state": "MERGED",
+      "draft": false,
+      "merge_commit": { "hash": "1a9ce1309b56" },
+      "author": { "display_name": "Linus Example", "uuid": "{5250331f-329a-494b-9f3b-93c9c38d9252}" },
+      "created_on": "2026-11-05T09:00:00.000000+00:00",
+      "updated_on": "2026-11-06T09:00:00.000000+00:00",
+      "destination": { "branch": { "name": "develop" } },
+      "source": { "branch": { "name": "feature/SHOP-40-partner-filter" }, "commit": { "hash": "5c0ffee0aa03" } },
+      "links": { "html": { "href": "https://bitbucket.org/acme/acme-shared/pull-requests/5" } }
+    }
+  ]
+}
