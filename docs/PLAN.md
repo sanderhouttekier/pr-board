@@ -26,7 +26,7 @@ The plan to turn the single-project board into the generic board in `docs/SPEC.m
 | 9 | Page: picker, banners, Ticket groups | careful | 7, 8 | done |
 | 10 | Cross-platform installer | medium | 2, 3 | done |
 | 11 | Repo hygiene, CI and docs | light | 1–10 | done |
-| 12 | Scrub, publish, parity, cutover | light (mostly human) | 11 | todo |
+| 12 | Scrub, publish, parity, cutover | light (mostly human) | 11 | done |
 
 Parallel lanes:
 - after 2: groups 3, 4 and 5 touch separate files and can run at the same time;
