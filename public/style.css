@@ -201,8 +201,24 @@ h1 {
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* Refresh countdown: the button's own border drains to the next round (an SVG path on the border's
+   pixels takes over from the CSS border) and the icon draws its strokes over a faint copy.
+   app.js sets the dash values; while refreshing a segment chases round the border instead. */
+.icon-button.countdown { position: relative; border-color: transparent; }
+.countdown-border { position: absolute; inset: -1px; width: 30px; height: 30px; pointer-events: none; }
+.countdown-border path { fill: none; }
+.countdown-track { stroke: var(--line); stroke-width: 1; }
+.countdown-fill { stroke: var(--muted); stroke-width: 1.5; }
+.icon-button.countdown:hover .countdown-fill { stroke: var(--fg); }
+.countdown .ghost { opacity: 0.3; }
+.countdown .ink { opacity: 0; }
+.countdown.spinning .countdown-fill { stroke-dasharray: 25 75 !important; animation: countdown-chase 0.9s linear infinite; }
+
+@keyframes countdown-chase { to { stroke-dashoffset: -100; } }
+
 @media (prefers-reduced-motion: reduce) {
   .spinning .icon-refresh { animation: none; }
+  .countdown.spinning .countdown-fill { animation: none; }
 }
 
 /* Attention row */

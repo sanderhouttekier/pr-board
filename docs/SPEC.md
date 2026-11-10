@@ -649,6 +649,7 @@ It binds to `127.0.0.1` only, with today's Host/Origin guard.
 {
   project: { id, title, hosts: { github: { owner }, bitbucket: { workspace } }, error, warnings: [string] },
   generatedAt, refreshing, rate: 'viewed' | 'hourly' | 'paused', intervalSec,
+  nextAt,   // when the next tick fires (ISO), or null without one; re-armed after every round
   sources: { github: { ok, error, fetchedAt }, bitbucket: {...}, jira: {...} },
   prs: [ normalized PR (no description) + { ticketKey, release, signals, worst, ready } ],
   tickets: { 'SHOP-42': { label, url, status, summary } },
@@ -671,13 +672,14 @@ Everything from the current page stays (mockup v2): the layout, chips, rows, the
   - the current tab is marked with `aria-current="page"`.
 
   The page polls `/api/projects` on the same schedule as the snapshot.
-- **Header.** The title is "`<project title>` pull requests". The muted line reads "updated HH:MM · every 5 min" (or "· hourly").
+- **Header.** The title is "`<project title>` pull requests". The muted line reads "updated HH:MM · next HH:MM" on the viewed rate (from `nextAt`), "· every 5 min" without `nextAt`, or "· hourly".
+- **Refresh countdown.** On the viewed rate with `nextAt`, the refresh button is the countdown. Its own border drains from full after a round, clockwise from top centre, its end running back counterclockwise until it's empty at `nextAt`. The refresh icon draws its six strokes one after the other over a faint copy (top arc, its arrowhead's two legs, bottom arc, its two legs) and erases them in the same direction, five loops per period, counted from the period's start. While refreshing, a segment chases round the border and the icon spins. With reduced motion the icon stays whole and nothing chases or spins.
 - **Banners.** The project error, if any, replaces the content. Warnings (unknown keys, whitelist misses, the Bitbucket cap, ambiguous references) show as one muted list under the attention row. Source errors work as today.
 - **By ticket.** Ticket group cards:
   - the header shows the Ticket label as a link (when `url`) with the external-link icon, the Jira summary and status chip (only when the matcher names a Jira site), and "ready N of M";
   - branch groups and "Other PRs" are unchanged.
 
-Polling: the snapshot and `/api/projects` every 30 s (3 s while refreshing), only while the tab is visible, as today.
+Polling: the snapshot and `/api/projects` every 30 s (3 s while refreshing), only while the tab is visible, as today. When `nextAt` comes sooner, the page polls one second after it instead, so the countdown hands over to the refreshing state on time.
 
 ## Fix prompts
 

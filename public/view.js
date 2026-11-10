@@ -22,6 +22,15 @@ const stroke = (size, body, cls) => `<svg class="${cls}" width="${size}" height=
 const ICON_EXTERNAL = stroke(14, '<path d="M12 6h-6a2 2 0 0 0 -2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-6"/><path d="M11 13l9 -9"/><path d="M15 4h5v5"/>', 'icon-ext');
 const ICON_CHEVRON = stroke(16, '<path d="M9 6l6 6l-6 6"/>', 'icon-chev');
 const ICON_REFRESH = stroke(16, '<path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4"/><path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4"/>', 'icon-refresh');
+// The refresh countdown (SPEC "Page", header). The border of the 30 px button as one path from top
+// centre clockwise (1 px stroke on the half pixel, 8 px corners); app.js drains it. The icon as its
+// six strokes in drawing order (top arc, its arrowhead's two legs from the corner out, bottom arc,
+// its two legs) over a faint copy of the whole icon; app.js draws them in and out on a loop.
+const BORDER_PATH = 'M15 .5H22.5A7 7 0 0 1 29.5 7.5V22.5A7 7 0 0 1 22.5 29.5H7.5A7 7 0 0 1 .5 22.5V7.5A7 7 0 0 1 7.5 .5Z';
+const COUNTDOWN_BORDER = `<svg class="countdown-border" viewBox="0 0 30 30" aria-hidden="true"><path class="countdown-track" d="${BORDER_PATH}" pathLength="100"/><path class="countdown-fill" d="${BORDER_PATH}" pathLength="100"/></svg>`;
+const REFRESH_STROKES = ['M20 11a8.1 8.1 0 0 0 -15.5 -2', 'M4 9V5', 'M4 9H8', 'M4 13a8.1 8.1 0 0 0 15.5 2', 'M20 15V19', 'M20 15H16'];
+const ICON_REFRESH_COUNTDOWN = stroke(16, '<path class="ghost" d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4"/><path class="ghost" d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4"/>'
+  + REFRESH_STROKES.map((d) => `<path class="ink" d="${d}"/>`).join(''), 'icon-refresh');
 const ICON_WAND = stroke(14, '<path d="M6 21l15 -15l-3 -3l-15 15l3 3"/><path d="M15 6l3 3"/><path d="M9 3a2 2 0 0 0 2 2a2 2 0 0 0 -2 2a2 2 0 0 0 -2 -2a2 2 0 0 0 2 -2"/><path d="M19 13a2 2 0 0 0 2 2a2 2 0 0 0 -2 2a2 2 0 0 0 -2 -2a2 2 0 0 0 2 -2"/>', 'icon-wand');
 const ICON_ALERT = stroke(14, '<path d="M12 9v4"/><path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.87l-8.106 -13.536a1.914 1.914 0 0 0 -3.274 0z"/><path d="M12 16h.01"/>', 'icon-alert');
 const ICON_COPY = stroke(14, '<path d="M7 9.667a2.667 2.667 0 0 1 2.667 -2.667h8.666a2.667 2.667 0 0 1 2.667 2.667v8.666a2.667 2.667 0 0 1 -2.667 2.667h-8.666a2.667 2.667 0 0 1 -2.667 -2.667z"/><path d="M4.012 16.737a2.005 2.005 0 0 1 -1.012 -1.737v-10c0 -1.1 .9 -2 2 -2h10c.75 0 1.158 .385 1.5 1"/>', 'icon-copy');
@@ -281,6 +290,8 @@ export function createView(derive, fixPrompt) {
         updated: hhmm(snapshot.generatedAt),
         refreshing: !!snapshot.refreshing,
         intervalMin: Math.round((snapshot.intervalSec ?? 300) / 60),
+        next: snapshot.rate === 'viewed' ? hhmm(snapshot.nextAt) : null,
+        countdown: snapshot.rate === 'viewed' && hhmm(snapshot.nextAt) ? { nextAt: snapshot.nextAt, periodSec: snapshot.intervalSec ?? 300 } : null,
       },
       attention: ATTENTION_CHIPS.map(([name, label, severity]) => ({
         name, label, severity, count: counts[name] ?? 0, active: ui.attention === name,
@@ -356,14 +367,21 @@ export function createView(derive, fixPrompt) {
     return '<header class="top">'
       + '<div class="heading">'
       + `<div class="title-line"><h1>${esc(h.title)}</h1>${vm.loading || vm.projectError ? '' : `<span class="open-count">${h.openCount} open</span>`}</div>`
-      + `<p class="meta">${when} · ${h.rate === 'hourly' ? 'hourly' : `every ${h.intervalMin} min`}</p>`
+      + `<p class="meta">${when} · ${h.rate === 'hourly' ? 'hourly' : h.next ? `next ${h.next}` : `every ${h.intervalMin} min`}</p>`
       + '</div>'
       + '<div class="controls">'
       + `<div class="seg" role="group" aria-label="Whose PRs">${seg('mine', '1', 'Mine', vm.mine)}${seg('mine', '0', 'All', !vm.mine)}</div>`
       + `<div class="seg" role="group" aria-label="Group by">${seg('view', 'ticket', 'By ticket', vm.view === 'ticket')}${seg('view', 'repo', 'By repo', vm.view === 'repo')}</div>`
-      + `<button type="button" class="icon-button${h.refreshing ? ' spinning' : ''}" data-action="refresh" aria-label="Refresh now" title="Refresh now">${ICON_REFRESH}</button>`
+      + renderRefreshButton(h)
       + '</div>'
       + '</header>';
+  }
+
+  function renderRefreshButton(h) {
+    const cls = `icon-button${h.countdown ? ' countdown' : ''}${h.refreshing ? ' spinning' : ''}`;
+    const data = h.countdown ? ` data-next="${esc(h.countdown.nextAt)}" data-period="${esc(h.countdown.periodSec)}"` : '';
+    const body = h.countdown ? COUNTDOWN_BORDER + ICON_REFRESH_COUNTDOWN : ICON_REFRESH;
+    return `<button type="button" class="${cls}" data-action="refresh"${data} aria-label="Refresh now" title="Refresh now">${body}</button>`;
   }
 
   function renderAttention(vm) {

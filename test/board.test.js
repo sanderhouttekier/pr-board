@@ -408,6 +408,20 @@ test('refresh: started true, false while busy; unknown id → null; a project wi
   assert.deepEqual(board.refresh('broken'), { started: false });
 });
 
+test('snapshot nextAt: when the next tick fires, re-armed by every round including a manual refresh', async () => {
+  const { board, now } = make({ projects: [entry('acme'), broken] });
+  board.start();
+  assert.equal(board.snapshot('acme').nextAt, '2026-11-06T10:05:00.000Z', 'armed at start');
+  await flush();
+  now.advance(120);
+  board.refresh('acme');
+  await flush();
+  assert.equal(board.snapshot('acme').nextAt, '2026-11-06T10:07:00.000Z', 'a manual round moves the next tick');
+  assert.equal(board.snapshot('broken').nextAt, null, 'a project with an error has no tick');
+  board.stop();
+  assert.equal(board.snapshot('acme').nextAt, null, 'stopped: no tick');
+});
+
 test('list: the tab data per project; marks the board open but no project viewed', async () => {
   const warnings = [{ file: '/cfg/config.json', path: 'colour', message: 'Unknown key `colour`, ignored' }];
   const { board, now } = make({ projects: [entry('acme'), broken], warnings, configDir: '/cfg' });
