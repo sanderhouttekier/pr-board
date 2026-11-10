@@ -197,6 +197,7 @@ For one-click access, open the page in Chrome and pick ⋮ → Cast, save and sh
 - With no page open (or only hidden tabs) for `idleAfterSec`, the board makes no calls at all. After login nothing is fetched until you open the page.
 - Opening a project whose data is older than `intervalSec` refreshes it at once; you see "updating…" for a few seconds.
 - The page polls the local server every 30 s while its tab is visible. The refresh button starts a round straight away.
+- The header says when the next round is due ("next 10:36"). The refresh button counts down to it: its border drains, and its icon redraws itself about once a minute to show the board is live.
 - If a source fails, the page keeps that source's last good data and shows a banner with the error.
 
 ## What the page shows

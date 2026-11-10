@@ -11,6 +11,8 @@ const PROJECT_ID = /^\/p\/([a-z0-9][a-z0-9-]*)\/?$/.exec(location.pathname)?.[1]
 const POLL_MS = 30_000;
 const POLL_REFRESHING_MS = 3_000;
 const COPIED_MS = 1_600;
+const ICON_LOOPS = 5; // refresh icon draw loops per countdown period (one a minute at 5 min)
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
 function loadPrefs() {
   try {
@@ -47,6 +49,7 @@ let lastKey = null;
 let timer = null;
 let lastVm = null;
 let copiedTimer = null;
+let countdown = null; // the refresh button's countdown in the current render, see bindCountdown()
 
 function draw() {
   if (unknown || !PROJECT_ID) {
@@ -54,6 +57,7 @@ function draw() {
     lastVm = view.stateModel(board, PROJECT_ID);
     document.title = lastVm.title;
     root.innerHTML = view.render(lastVm);
+    bindCountdown();
     return;
   }
   if (!snapshot) return;
@@ -63,6 +67,7 @@ function draw() {
   lastVm = view.viewModel(snapshot, { ...ui, now: Date.now() }, board);
   document.title = lastVm.title;
   root.innerHTML = view.render(lastVm);
+  bindCountdown();
   if (!was) return;
   for (const el of root.querySelectorAll('button[data-action]')) {
     if (el.dataset.action === was[0] && el.dataset.value === was[1]) {
@@ -97,15 +102,77 @@ async function poll() {
     unknown = false;
     snapshot = snap.body;
   }
-  const key = JSON.stringify([unknown, snapshot?.generatedAt, snapshot?.refreshing, board]);
+  const key = JSON.stringify([unknown, snapshot?.generatedAt, snapshot?.refreshing, snapshot?.nextAt, board]);
   if (key !== lastKey) {
     lastKey = key;
     draw();
   }
   // Hidden tab: no timer at all, so the server can go idle; visibilitychange resumes.
   if (document.visibilityState !== 'hidden') {
-    timer = setTimeout(poll, snapshot?.refreshing && !unknown ? POLL_REFRESHING_MS : POLL_MS);
+    let delay = snapshot?.refreshing && !unknown ? POLL_REFRESHING_MS : POLL_MS;
+    // Catch the scheduled round as it starts: poll a second after nextAt rather than up to 30 s late.
+    const untilNext = Date.parse(snapshot?.nextAt) + 1000 - Date.now();
+    if (untilNext > 0 && untilNext < delay) delay = untilNext;
+    timer = setTimeout(poll, delay);
   }
+}
+
+// The refresh countdown (SPEC "Page", header). The border drains from full after a round to empty
+// at nextAt. The icon's six strokes loop ICON_LOOPS times per period, counted from the period's
+// start: a head draws them in one after the other (70%, eased), all stay (10%), then a tail erases
+// them in the same direction (20%, eased). While refreshing, CSS takes over (chase and spin).
+function bindCountdown() {
+  const btn = root.querySelector('.icon-button.countdown');
+  if (!btn) {
+    countdown = null;
+    return;
+  }
+  let offset = 0;
+  const strokes = [...btn.querySelectorAll('.ink')].map((el) => {
+    const len = el.getTotalLength();
+    const s = { el, len, offset };
+    offset += len;
+    return s;
+  });
+  countdown = {
+    fill: btn.querySelector('.countdown-fill'),
+    next: Date.parse(btn.dataset.next),
+    periodMs: Number(btn.dataset.period) * 1000,
+    busy: btn.classList.contains('spinning'),
+    strokes,
+    total: offset,
+  };
+  paintCountdown(Date.now());
+}
+
+const ease = (x) => (x < 0.5 ? 2 * x * x : 1 - (-2 * x + 2) ** 2 / 2);
+
+function iconLoop(t) {
+  if (t < 0.7) return { tail: 0, head: ease(t / 0.7) };
+  if (t < 0.8) return { tail: 0, head: 1 };
+  return { tail: ease((t - 0.8) / 0.2), head: 1 };
+}
+
+function paintCountdown(now) {
+  const c = countdown;
+  if (!c || !(c.periodMs > 0) || Number.isNaN(c.next)) return;
+  const remain = Math.min(1, Math.max(0, (c.next - now) / c.periodMs));
+  c.fill.style.strokeDasharray = `${remain * 100} 100`;
+  const loopMs = c.periodMs / ICON_LOOPS;
+  const t = ((((now - (c.next - c.periodMs)) % loopMs) + loopMs) % loopMs) / loopMs;
+  const { tail, head } = c.busy || reducedMotion.matches ? { tail: 0, head: 1 } : iconLoop(t);
+  for (const { el, len, offset } of c.strokes) {
+    const a = Math.min(len, Math.max(0, tail * c.total - offset));
+    const b = Math.min(len, Math.max(0, head * c.total - offset));
+    el.style.strokeDasharray = `${b - a} ${len + 1}`;
+    el.style.strokeDashoffset = String(-a);
+    el.style.opacity = b - a > 0.05 ? '1' : '0'; // a 0-length dash with a round cap still shows a dot
+  }
+}
+
+function frame() {
+  paintCountdown(Date.now());
+  requestAnimationFrame(frame);
 }
 
 async function refresh() {
@@ -185,3 +252,4 @@ document.addEventListener('visibilitychange', () => {
 });
 
 if (document.visibilityState !== 'hidden') poll();
+requestAnimationFrame(frame); // paused by the browser while the tab is hidden

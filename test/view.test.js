@@ -727,6 +727,25 @@ describe('page: projects, header, banners and Tickets', () => {
       assert.match(hourly, /<p class="meta">updated \d\d:\d\d · hourly<\/p>/);
       assert.doesNotMatch(hourly, /every \d+ min/);
     });
+
+    test('"next HH:MM" instead of the interval when the snapshot has nextAt', () => {
+      const h = view.render(view.viewModel(snapshot({ nextAt: '2026-11-06T12:03:00.000Z' }), ui()));
+      assert.match(h, /<p class="meta">updated \d\d:58 · next \d\d:03<\/p>/);
+      const hourly = view.render(view.viewModel(snapshot({ rate: 'hourly', nextAt: '2026-11-06T12:03:00.000Z' }), ui()));
+      assert.match(hourly, /<p class="meta">updated \d\d:\d\d · hourly<\/p>/, 'the hourly rate has no countdown');
+    });
+
+    test('the refresh button carries the countdown: next and period, a border track and the icon as six strokes', () => {
+      const h = view.render(view.viewModel(snapshot({ nextAt: '2026-11-06T12:03:00.000Z' }), ui()));
+      const btn = h.slice(h.indexOf('<button type="button" class="icon-button'), h.indexOf('</button>', h.indexOf('data-action="refresh"')));
+      assert.match(btn, /class="icon-button countdown" data-action="refresh" data-next="2026-11-06T12:03:00.000Z" data-period="300"/);
+      assert.match(btn, /<svg class="countdown-border"[^>]*>.*<path class="countdown-track"[^>]*\/><path class="countdown-fill"[^>]*\/><\/svg>/);
+      assert.equal(btn.match(/<path class="ink" /g)?.length, 6, 'top arc, two legs, bottom arc, two legs');
+      assert.equal(btn.match(/<path class="ghost" /g)?.length, 2, 'the faint full icon underneath');
+      const plain = view.render(view.viewModel(snapshot({ rate: 'hourly', nextAt: '2026-11-06T12:03:00.000Z' }), ui()));
+      assert.doesNotMatch(plain, /countdown|class="ink"/, 'no countdown on the hourly rate');
+      assert.doesNotMatch(view.render(view.viewModel(snapshot(), ui())), /countdown/, 'none without nextAt');
+    });
   });
 
   describe('banners', () => {

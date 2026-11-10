@@ -57,6 +57,7 @@ export function createBoard({
     }),
     lastSnapshotAt: null, // last snapshot request: viewed
     timer: null,
+    nextAt: null, // when `timer` fires (ms), for the page's countdown
     followUp: null,
     inFlight: null,
   }));
@@ -75,6 +76,7 @@ export function createBoard({
   function arm(e) {
     timers.clearTimer(e.timer);
     e.timer = stopped || !e.collector.ok ? null : timers.setTimer(() => tick(e), settings.intervalSec * 1000);
+    e.nextAt = e.timer ? now() + settings.intervalSec * 1000 : null;
   }
 
   // A round for the project unless one is running (then that one). Re-arms the tick when it ends.
@@ -137,6 +139,7 @@ export function createBoard({
       timers.clearTimer(e.timer);
       timers.clearTimer(e.followUp);
       e.timer = null;
+      e.nextAt = null;
       e.followUp = null;
     }
   }
@@ -153,14 +156,15 @@ export function createBoard({
   }
 
   // GET /api/p/<id>/snapshot: marks the board open and the project viewed; a round when the data is
-  // missing or older than intervalSec (not awaited). null for an unknown id.
+  // missing or older than intervalSec (not awaited). null for an unknown id. `nextAt`: when the
+  // next tick fires (ISO), or null without one; stale while a round runs, until it re-arms.
   function snapshot(id) {
     const e = byId.get(id);
     if (!e) return null;
     request();
     e.lastSnapshotAt = now();
     if (age(e) > settings.intervalSec * 1000) run(e);
-    return e.collector.snapshot({ rate: rate(e) });
+    return { ...e.collector.snapshot({ rate: rate(e) }), nextAt: e.nextAt === null ? null : new Date(e.nextAt).toISOString() };
   }
 
   // POST /api/p/<id>/refresh: a round unless one is running. null for an unknown id.
