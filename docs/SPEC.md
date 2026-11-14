@@ -552,6 +552,27 @@ These are today's rules, with owner and workspace from the project file and repo
 
 **Viewer identity** ("mine"): GitHub `GET /user` → `login`, Bitbucket `GET /2.0/user?fields=uuid` → `uuid`. It's looked up once per `(host, ref)`, because credential overrides can be other accounts. It's cached after success and retried next round after a failure. A `mine.<host>` value in the personal config replaces the lookup.
 
+### PR detail
+
+A PR's description and comments, read only when the page asks (`GET /api/p/<id>/pr?id=<pr id>`), never during a round. Every call goes through `http.get` / `http.getAll` (GET only) with the host credential the rounds use (`secrets.auth(host, credential)`).
+
+- **GitHub** (owner from the project), the four in parallel:
+  - `GET /repos/{owner}/{repo}/pulls/{n}` → `body` as the description (empty → null);
+  - `GET /repos/{owner}/{repo}/issues/{n}/comments?per_page=100`, all pages: general comments, `path` and `line` null;
+  - `GET /repos/{owner}/{repo}/pulls/{n}/reviews?per_page=100`, all pages: each submitted review with text (a review's summary, "Looks good, two nits below") is a general comment with `submitted_at` as its time. Reviews without text and pending reviews (no `submitted_at`) are skipped. The review state (approved, changes requested) is never exposed: approvals are a non-goal;
+  - `GET /repos/{owner}/{repo}/pulls/{n}/comments?per_page=100`, all pages: inline comments, `path`, `line ?? original_line ?? null`.
+
+  Author `user.login`, `bot` when `user.type` is `Bot`, `created_at`, `body`.
+- **Bitbucket** (workspace from the project), in parallel:
+  - `GET /2.0/repositories/{workspace}/{repo}/pullrequests/{id}` → `description`, else `summary.raw` (empty → null);
+  - `GET …/pullrequests/{id}/comments?pagelen=100`, all pages via `next`. Deleted comments are skipped. Author `user.display_name`, else `user.nickname`, else `unknown`; `bot` is always false; `created_on`, `content.raw`, `inline.path` or null, `inline.to ?? inline.from ?? null`.
+
+Rules:
+- **Known PRs only.** The id must be one of the project's open PRs in the collector's last good data. Anything else is a 404, so the route can never read an arbitrary repo or number from the query.
+- **Cache.** Per `(PR id, updatedAt)` for 60 s, so reopening is cheap and a changed PR refetches. Failures aren't cached; concurrent requests for one PR share one read.
+- **Not a snapshot.** It marks nothing viewed or open, touches no rate and starts no round.
+- Comments are sorted by `createdAt`, ascending and stable. Errors are the collector's short one-line message (no token, no auth header).
+
 ## Shared package check
 
 For each entry in `sharedPackages` (shared package repo `S`, `kind: composer`, package `P`, consumers `C`), and for each open PR in a consumer repo, the consumer's source reads at the PR's `headSha`. Both repos may be on either host, and each read uses its own repo's host and credential.
@@ -638,6 +659,7 @@ It binds to `127.0.0.1` only, with today's Host/Origin guard.
 | `GET /api/projects` | The tab data per project: `{ id, title, count, ageMin, rate: 'viewed' \| 'hourly' \| 'paused', error, warnings }`. It marks the board open, but no project as viewed. |
 | `GET /api/p/<id>/snapshot` | The project snapshot. It marks the board open and the project viewed. |
 | `POST /api/p/<id>/refresh` | 202. Starts a round for that project if none is running. |
+| `GET /api/p/<id>/pr?id=<pr id>` | The PR detail (see "PR detail"), `cache-control: no-store`: 200 `{ id, description, comments: [{ author, bot, createdAt, body, path, line }] }`; 400 without `id`; 404 for an unknown project or a PR that isn't among its open PRs; 502 `{ error }` when an upstream read or the token fails. It marks nothing viewed or open. |
 | `GET /lib/derive.js` | As today. |
 | static `public/` | As today. |
 
@@ -680,6 +702,18 @@ Everything from the current page stays (mockup v2): the layout, chips, rows, the
   - branch groups and "Other PRs" are unchanged.
 
 Polling: the snapshot and `/api/projects` every 30 s (3 s while refreshing), only while the tab is visible, as today. When `nextAt` comes sooner, the page polls one second after it instead, so the countdown hands over to the refreshing state on time.
+
+### PR detail panel
+
+A side panel with a PR's description and comments, read from `GET /api/p/<id>/pr?id=<PR id>` (see "Server"). One panel for the page at a time.
+
+- **Caret.** Every PR row ends with a 26×26 caret button after the fix column (`data-action="detail"`, `aria-expanded`, `aria-controls="pr-panel"`, label "Show description and comments for `<repo> #<n>`"). It points right while its panel is closed and left while open (a short rotation, none with reduced motion); muted, with a border on hover; while open it's in the text colour with a border. The open PR's row is highlighted (hover background and a 3 px inset bar in the neutral colour). Below 900 px the caret sits on the top line next to Fix. The PR link (logo + `repo #n`) stays the only link to the host.
+- **Panel.** `<aside id="pr-panel">` outside `#app`, so board re-renders never touch it; the page writes its HTML only when it changed, so polls keep its scroll position and focus. Docked on the right at full height with a left border and no scrim: the body gets `padding-right` equal to the panel width, the board stays usable and centred in the rest. Below 900 px the panel covers the full width and can't be resized.
+- **Content.** Header: `repo #n` (mono), "Open on GitHub ↗" / "Open on Bitbucket ↗" (new tab) and a ✕ close button; the title; author · `source` → `target` · opened `<age>`; "No longer open." when the PR left the snapshot. Tabs "Description" and "Conversation" (with the comment count, "…" until it's known). The selected tab stays while the panel is open, also when another PR swaps in, and resets to Description when it closes. The body scrolls: the description, or the comments in order (author, age, `path:line` for inline comments, then the text; bot comments dimmed with a "bot" label).
+- **States.** Loading: three pulsing bars, only when a PR is opened; a refetch keeps the old content. Error: "Couldn't load the details: `<error>`" with "Try again" (a failed refetch keeps the old content). No description: "No description."; no comments: "No comments yet.".
+- **Text rendering.** Descriptions and comments are untrusted. Everything is escaped first; then, on the escaped text: fenced ```` ``` ```` blocks become `<pre>` (not processed further; an unterminated fence runs to the end), `` `code` `` becomes `<code>`, `http://` and `https://` URLs become links in a new tab (no other scheme; a URL ends at whitespace, a backtick or an escaped quote or angle bracket, and trailing punctuation stays outside), lines starting with `#`…`######` and a space are bold lines, lines starting with `- ` or `* ` are bullets, blank lines are a small gap. Host-rendered HTML is never used.
+- **Width.** A grip on the panel's left edge (`role="separator"`, `aria-valuenow` = width, focusable) resizes it: drag, ← wider / → narrower in 24 px steps, double-click resets to 460. The width is clamped to [320, window width − 480], kept in `localStorage` under `pr-board:panel-width` (default 460 when missing, invalid or blocked), and every PR opens at it, also after a reload. A window resize re-clamps the applied width and keeps the stored one.
+- **Behaviour.** The caret opens the panel; the open PR's caret closes it; another caret swaps the content. ✕ and Escape close it too (Escape is ignored in inputs). On open, focus moves to ✕; on close it returns to that row's caret if it's on the page. The detail is fetched when a PR opens and refetched silently when a poll brings a new `updatedAt` for it; an answer to an older request is ignored. A PR that leaves the snapshot keeps its panel and content, marked "No longer open.". Mine/All and view switches don't close the panel; a reload does.
 
 ## Fix prompts
 

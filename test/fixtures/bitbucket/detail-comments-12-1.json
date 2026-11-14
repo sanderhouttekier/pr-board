@@ -1,0 +1,23 @@
+{
+  "pagelen": 100,
+  "values": [
+    {
+      "id": 501,
+      "created_on": "2026-11-10T09:00:00.000000+00:00",
+      "updated_on": "2026-11-10T09:00:00.000000+00:00",
+      "content": { "raw": "Can we stream this instead?", "markup": "markdown" },
+      "user": { "display_name": "Grace Example", "nickname": "grace" },
+      "deleted": false
+    },
+    {
+      "id": 502,
+      "created_on": "2026-11-10T09:05:00.000000+00:00",
+      "updated_on": "2026-11-10T09:06:00.000000+00:00",
+      "content": { "raw": "", "markup": "markdown" },
+      "user": { "display_name": "Linus Example", "nickname": "linus" },
+      "deleted": true
+    }
+  ],
+  "page": 1,
+  "next": "https://api.bitbucket.org/2.0/repositories/acme/acme-backend/pullrequests/12/comments?pagelen=100&page=2"
+}

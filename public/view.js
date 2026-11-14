@@ -21,6 +21,8 @@ const SOURCE_NAMES = { github: 'GitHub', bitbucket: 'Bitbucket', jira: 'Jira' };
 const stroke = (size, body, cls) => `<svg class="${cls}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
 const ICON_EXTERNAL = stroke(14, '<path d="M12 6h-6a2 2 0 0 0 -2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-6"/><path d="M11 13l9 -9"/><path d="M15 4h5v5"/>', 'icon-ext');
 const ICON_CHEVRON = stroke(16, '<path d="M9 6l6 6l-6 6"/>', 'icon-chev');
+// The row's detail caret: points right while its panel is closed, CSS turns it left while open.
+const ICON_CARET = stroke(16, '<path d="M9 6l6 6l-6 6"/>', 'icon-caret');
 const ICON_REFRESH = stroke(16, '<path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4"/><path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4"/>', 'icon-refresh');
 // The refresh countdown (SPEC "Page", header). The border of the 30 px button as one path from top
 // centre clockwise (1 px stroke on the half pixel, 8 px corners); app.js drains it. The icon as its
@@ -159,6 +161,7 @@ export function createView(derive, fixPrompt) {
       chips,
       age,
       fix: rowFix(pr, ui),
+      detailOpen: ui.panelId != null && ui.panelId === pr.id,
     };
   }
 
@@ -348,7 +351,7 @@ export function createView(derive, fixPrompt) {
     const fullTitle = r.author ? `${r.author}: ${r.title ?? ''}` : (r.title ?? '');
     const hostName = SOURCE_NAMES[r.host];
     const linkTitle = `Open ${r.repoShort ?? ''} #${r.number ?? ''}${hostName ? ` on ${hostName}` : ''}`;
-    return '<div class="pr">'
+    return `<div class="pr${r.detailOpen ? ' detail-open' : ''}">`
       + `<a class="pr-link"${hrefAttr(r.url)} title="${esc(linkTitle)}">`
       + logo(r.host)
       + `<span class="ref"><span class="repo">${esc(r.repoShort)}</span> <span class="num">#${esc(r.number)}</span></span>`
@@ -356,6 +359,8 @@ export function createView(derive, fixPrompt) {
       + `<span class="title" title="${esc(fullTitle)}">${author}${esc(r.title)}</span>`
       + `<span class="chips">${r.chips.map(chip).join('')}${r.age ? `<span class="age">${esc(r.age)}</span>` : ''}</span>`
       + `<span class="fixcol">${r.fix ? renderFixButton(r.fix, 'Fix') : ''}</span>`
+      + `<span class="detailcol"><button type="button" class="detail-btn" data-action="detail" data-value="${esc(r.id)}" aria-expanded="${!!r.detailOpen}" aria-controls="pr-panel"`
+      + ` aria-label="Show description and comments for ${esc(r.repoShort)} #${esc(r.number)}" title="Show description and comments">${ICON_CARET}</button></span>`
       + '</div>'
       + (r.fix?.open ? renderDrawer(r.fix, rowOwnerNote(r.fix.owner)) : '');
   }
@@ -489,4 +494,232 @@ export function createView(derive, fixPrompt) {
   }
 
   return { viewModel, stateModel, render };
+}
+
+// PR detail panel (SPEC "Page", "PR detail panel"). Pure: app.js owns the state object, fetches
+// and the DOM; these helpers decide the transitions, the model and the HTML.
+
+export const PANEL_DEFAULT_W = 460;
+const PANEL_MIN_W = 320;
+const BOARD_MIN_W = 480; // the board never gets narrower than this while the panel is docked
+
+/** The panel width that fits a viewport `viewport` px wide: [320, viewport - 480], rounded. */
+export function clampPanelWidth(width, viewport) {
+  const w = Number.isFinite(width) ? width : PANEL_DEFAULT_W;
+  const max = Number.isFinite(viewport) ? Math.max(PANEL_MIN_W, viewport - BOARD_MIN_W) : Infinity;
+  return Math.round(Math.min(max, Math.max(PANEL_MIN_W, w)));
+}
+
+/** The stored width preference (a localStorage string): a number of at least 320, else the default. */
+export function parsePanelWidth(stored) {
+  const n = stored == null || stored === '' ? NaN : Number(stored);
+  return Number.isFinite(n) && n >= PANEL_MIN_W ? Math.round(n) : PANEL_DEFAULT_W;
+}
+
+// Panel state: null while closed, else
+// { id, pr, tab: 'description' | 'conversation', seq, data: { description, comments } | null, error, gone }.
+// `seq` is the latest request's number (app.js counts them); only that request's answer is applied.
+
+/** The caret of `pr`'s row: the same PR closes the panel, another one swaps it in (the tab stays). */
+export function togglePanel(state, pr) {
+  if (!pr) return state ?? null;
+  if (state?.id === pr.id) return null;
+  return { id: pr.id, pr, tab: state?.tab ?? 'description', seq: 0, data: null, error: null, gone: false };
+}
+
+export function panelTab(state, tab) {
+  return state && { ...state, tab: tab === 'conversation' ? 'conversation' : 'description' };
+}
+
+/** A request `seq` starts. An earlier error goes (Try again shows the skeleton); loaded content stays. */
+export function panelLoading(state, seq) {
+  return state && { ...state, seq, error: null };
+}
+
+/** The answer to request `seq`: `{ ok: true, body }` or `{ ok: false, error }`. Stale answers change nothing. */
+export function panelResult(state, seq, result) {
+  if (!state || state.seq !== seq) return state;
+  if (result?.ok) {
+    const body = result.body ?? {};
+    return {
+      ...state,
+      data: {
+        description: typeof body.description === 'string' ? body.description : null,
+        comments: Array.isArray(body.comments) ? body.comments : [],
+      },
+      error: null,
+    };
+  }
+  if (state.data) return state; // a failed refetch keeps the old content
+  return { ...state, error: String(result?.error || 'unknown error') };
+}
+
+/** A new snapshot: follow the PR's fields, mark it gone when it left, refetch when `updatedAt` moved. */
+export function panelOnSnapshot(state, prs) {
+  if (!state) return { state, refetch: false };
+  const pr = (prs ?? []).find((p) => p.id === state.id);
+  if (!pr) return { state: state.gone ? state : { ...state, gone: true }, refetch: false };
+  const refetch = pr.updatedAt !== state.pr?.updatedAt;
+  if (!refetch && !state.gone) return { state, refetch };
+  return { state: { ...state, pr, gone: false }, refetch };
+}
+
+function ago(isoString, now) {
+  const t = Date.parse(isoString ?? NaN);
+  if (!Number.isFinite(t) || !Number.isFinite(now)) return null;
+  const min = Math.floor(Math.max(0, now - t) / 60_000);
+  if (min < 1) return 'just now';
+  if (min < 60) return `${min}m ago`;
+  const hours = Math.floor(min / 60);
+  return hours < 24 ? `${hours}h ago` : `${Math.floor(hours / 24)}d ago`;
+}
+
+/** The panel's view model, or null while closed. `now` comes from the caller. */
+export function panelModel(state, now) {
+  if (!state) return null;
+  const p = state.pr ?? {};
+  const data = state.data;
+  let body;
+  if (data && state.tab === 'conversation') {
+    body = {
+      kind: 'conversation',
+      comments: data.comments.map((c) => ({
+        author: c.author ?? null,
+        bot: !!c.bot,
+        age: ago(c.createdAt, now),
+        where: c.path ? (c.line != null ? `${c.path}:${c.line}` : c.path) : null,
+        body: c.body ?? '',
+      })),
+    };
+  } else if (data) {
+    body = { kind: 'description', text: data.description?.trim() ? data.description : null };
+  } else if (state.error) {
+    body = { kind: 'error', message: state.error };
+  } else {
+    body = { kind: 'loading' };
+  }
+  return {
+    id: state.id,
+    host: p.host ?? null,
+    hostLabel: SOURCE_NAMES[p.host] ?? null,
+    repoShort: p.repoShort ?? null,
+    number: p.number ?? null,
+    url: safeUrl(p.url),
+    title: p.title ?? null,
+    author: p.author?.name ?? null,
+    source: p.source ?? null,
+    target: p.target ?? null,
+    opened: ago(p.createdAt, now),
+    gone: !!state.gone,
+    tab: state.tab === 'conversation' ? 'conversation' : 'description',
+    count: data ? data.comments.length : null,
+    body,
+  };
+}
+
+// Untrusted text (PR descriptions, comments): everything is escaped first, then a few line rules
+// run on the escaped text. URLs stop at an escaped quote or angle bracket, so nothing leaves the href.
+const FENCE_RE = /^ {0,3}```/;
+const URL_RE = /https?:\/\/(?:(?!&(?:lt|gt|quot|#39);)[^\s`])+/gi;
+const count = (s, c) => s.split(c).length - 1;
+
+function linkify(escaped) {
+  return escaped.replace(URL_RE, (match) => {
+    let url = match;
+    for (;;) {
+      const before = url;
+      url = url.replace(/[.,;:!?\]]+$/, '');
+      if (url.endsWith(')') && count(url, '(') < count(url, ')')) url = url.slice(0, -1);
+      if (url === before) break;
+    }
+    if (!/^https?:\/\/./i.test(url)) return match;
+    return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>${match.slice(url.length)}`;
+  });
+}
+
+const inlineText = (escaped) => escaped.split(/(`[^`\n]+`)/)
+  .map((part, i) => (i % 2 ? `<code>${part.slice(1, -1)}</code>` : linkify(part)))
+  .join('');
+
+/** Untrusted text → HTML: fenced blocks, inline code, http(s) links, headings, bullets, gaps. */
+export function renderText(body) {
+  if (body == null || body === '') return '';
+  const out = [];
+  let fence = null; // the lines of an open fenced block
+  let gap = false;
+  const flushGap = () => {
+    if (gap && out.length) out.push('<div class="t-gap"></div>');
+    gap = false;
+  };
+  for (const line of esc(body).replace(/\r\n?/g, '\n').split('\n')) {
+    if (fence) {
+      if (FENCE_RE.test(line)) {
+        out.push(`<pre>${fence.join('\n')}</pre>`);
+        fence = null;
+      } else fence.push(line);
+      continue;
+    }
+    if (FENCE_RE.test(line)) {
+      flushGap();
+      fence = [];
+      continue;
+    }
+    if (!line.trim()) {
+      gap = true;
+      continue;
+    }
+    flushGap();
+    const heading = /^#{1,6}(?:\s+|$)(.*)$/.exec(line);
+    const bullet = /^\s*[-*]\s+(.*)$/.exec(line);
+    if (heading) out.push(`<div class="t-h">${inlineText(heading[1])}</div>`);
+    else if (bullet) out.push(`<div class="t-li">${inlineText(bullet[1])}</div>`);
+    else out.push(`<div>${inlineText(line)}</div>`);
+  }
+  if (fence) out.push(`<pre>${fence.join('\n')}</pre>`); // unterminated: code to the end
+  return out.join('');
+}
+
+const PANEL_GRIP = '<div class="panel-grip" role="separator" aria-orientation="vertical" aria-label="Resize panel" tabindex="0" title="Drag to resize, double-click to reset"></div>';
+const PANEL_LOADING = '<div class="panel-loading" role="status" aria-label="Loading"><div></div><div></div><div></div></div>';
+
+function renderComment(c) {
+  return `<article class="comment${c.bot ? ' bot' : ''}"><div class="comment-meta">`
+    + `<strong>${esc(c.author)}</strong>${c.bot ? '<span class="bot-label">bot</span>' : ''}`
+    + (c.age ? ` · ${esc(c.age)}` : '')
+    + (c.where ? ` · <code class="comment-path">${esc(c.where)}</code>` : '')
+    + `</div><div class="panel-text">${renderText(c.body)}</div></article>`;
+}
+
+function renderPanelBody(b) {
+  if (b.kind === 'loading') return PANEL_LOADING;
+  if (b.kind === 'error') {
+    return `<p class="panel-error">Couldn't load the details: ${esc(b.message)}</p>`
+      + '<button type="button" class="panel-retry" data-action="panel-retry">Try again</button>';
+  }
+  if (b.kind === 'description') {
+    return b.text ? `<div class="panel-text">${renderText(b.text)}</div>` : '<p class="panel-empty">No description.</p>';
+  }
+  return b.comments.length ? b.comments.map(renderComment).join('') : '<p class="panel-empty">No comments yet.</p>';
+}
+
+/** The panel's inner HTML (app.js puts it in `<aside id="pr-panel">`), or '' while closed. */
+export function renderPanel(vm) {
+  if (!vm) return '';
+  const link = vm.url ? `<a class="panel-link"${hrefAttr(vm.url)}>Open on ${esc(vm.hostLabel ?? 'host')} ↗</a>` : '';
+  const branches = vm.source || vm.target ? `<code>${esc(vm.source)}</code> → <code>${esc(vm.target)}</code>` : null;
+  const meta = [vm.author ? esc(vm.author) : null, branches, vm.opened ? `opened ${esc(vm.opened)}` : null].filter(Boolean).join(' · ');
+  const tab = (key, label) => `<button type="button" role="tab" class="panel-tab" id="panel-tab-${key}" aria-selected="${vm.tab === key}" aria-controls="panel-body" data-action="panel-tab" data-value="${key}">${label}</button>`;
+  return PANEL_GRIP
+    + '<div class="panel-head">'
+    + `<div class="panel-ref"><span class="ref"><span class="repo">${esc(vm.repoShort)}</span> <span class="num">#${esc(vm.number)}</span></span>${link}`
+    + '<button type="button" class="panel-close" data-action="panel-close" aria-label="Close panel" title="Close (Esc)">✕</button></div>'
+    + `<h2 class="panel-title">${esc(vm.title)}</h2>`
+    + `<p class="panel-meta">${meta}</p>`
+    + (vm.gone ? '<p class="panel-gone">No longer open.</p>' : '')
+    + '</div>'
+    + '<div class="panel-tabs" role="tablist" aria-label="Details">'
+    + tab('description', 'Description')
+    + tab('conversation', `Conversation <span class="pill">${vm.count ?? '…'}</span>`)
+    + '</div>'
+    + `<div class="panel-body" id="panel-body" role="tabpanel" aria-labelledby="panel-tab-${vm.tab}">${renderPanelBody(vm.body)}</div>`;
 }

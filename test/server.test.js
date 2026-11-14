@@ -12,7 +12,7 @@ const INDEX = readFileSync(join(publicDir, 'index.html'), 'utf8');
 
 // A stub board: records which calls each route makes.
 function stubBoard(ids = ['acme', 'beta']) {
-  const calls = { list: 0, snapshot: [], refresh: [] };
+  const calls = { list: 0, snapshot: [], refresh: [], detail: [] };
   const board = {
     calls,
     busy: false,
@@ -29,6 +29,14 @@ function stubBoard(ids = ['acme', 'beta']) {
     refresh: (id) => {
       calls.refresh.push(id);
       return ids.includes(id) ? { started: !board.busy } : null;
+    },
+    // Knows one PR per project; `github:acme-api#500` fails upstream.
+    detail: async (id, prId) => {
+      calls.detail.push([id, prId]);
+      if (!ids.includes(id)) return null;
+      if (prId === 'github:acme-api#500') return { error: 'GET https://api.github.com/repos/acme-corp/acme-api/pulls/500 failed with 500' };
+      if (prId !== 'github:acme-api#101') return { notFound: true };
+      return { detail: { id: prId, description: '## What', comments: [{ author: 'Ada Example', bot: false, createdAt: '2026-11-10T09:00:00Z', body: 'ok', path: 'src/a.ts', line: 12 }] } };
     },
   };
   return board;
@@ -197,6 +205,64 @@ test('only /api/projects and the snapshot reach the board state; pages, static f
   await post('/api/p/acme/refresh');
   assert.equal(board.calls.list, list);
   assert.equal(board.calls.snapshot.length, snaps);
+});
+
+// --- PR detail ---
+
+const PR_PATH = (project, prId) => `/api/p/${project}/pr` + (prId === undefined ? '' : `?id=${encodeURIComponent(prId)}`);
+
+test('GET /api/p/<id>/pr?id=<pr id>: the PR description and comments as JSON, no-store', async () => {
+  const res = await get(PR_PATH('acme', 'github:acme-api#101'));
+  assert.equal(res.status, 200);
+  assert.match(res.headers['content-type'], /application\/json/);
+  assert.equal(res.headers['cache-control'], 'no-store');
+  assert.deepEqual(JSON.parse(res.body), {
+    id: 'github:acme-api#101',
+    description: '## What',
+    comments: [{ author: 'Ada Example', bot: false, createdAt: '2026-11-10T09:00:00Z', body: 'ok', path: 'src/a.ts', line: 12 }],
+  });
+  assert.deepEqual(board.calls.detail.at(-1), ['acme', 'github:acme-api#101']);
+});
+
+test('GET /api/p/<id>/pr: a missing or empty id is 400', async () => {
+  const before = board.calls.detail.length;
+  for (const p of [PR_PATH('acme'), PR_PATH('acme', ''), '/api/p/acme/pr?other=1']) {
+    const res = await get(p);
+    assert.equal(res.status, 400, p);
+    assert.match(res.headers['content-type'], /application\/json/);
+    assert.equal(typeof JSON.parse(res.body).error, 'string');
+  }
+  assert.equal(board.calls.detail.length, before);
+});
+
+test('GET /api/p/<id>/pr: an unknown project or a PR the board does not hold is 404', async () => {
+  const unknown = await get(PR_PATH('nope', 'github:acme-api#101'));
+  assert.equal(unknown.status, 404);
+  assert.deepEqual(JSON.parse(unknown.body), { error: 'Unknown project `nope`' });
+  for (const prId of ['github:acme-api#999', 'github:evil-corp/other#1']) {
+    const res = await get(PR_PATH('acme', prId));
+    assert.equal(res.status, 404, prId);
+    assert.equal(typeof JSON.parse(res.body).error, 'string');
+  }
+});
+
+test('GET /api/p/<id>/pr: an upstream failure is 502 with the short message', async () => {
+  const res = await get(PR_PATH('acme', 'github:acme-api#500'));
+  assert.equal(res.status, 502);
+  assert.equal(res.headers['cache-control'], 'no-store');
+  assert.deepEqual(JSON.parse(res.body), { error: 'GET https://api.github.com/repos/acme-corp/acme-api/pulls/500 failed with 500' });
+});
+
+test('/api/p/<id>/pr: other methods are 404 JSON; a foreign Host is 403', async () => {
+  for (const method of ['HEAD', 'POST', 'PUT', 'DELETE']) {
+    const res = await request(method, PR_PATH('acme', 'github:acme-api#101'));
+    assert.equal(res.status, 404, method);
+    if (method !== 'HEAD') assert.deepEqual(JSON.parse(res.body), { error: 'Not found' });
+  }
+  const before = board.calls.detail.length;
+  const res = await get(PR_PATH('acme', 'github:acme-api#101'), { headers: { host: 'evil.example' } });
+  assert.equal(res.status, 403);
+  assert.equal(board.calls.detail.length, before);
 });
 
 // --- Host/Origin guard ---

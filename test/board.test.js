@@ -146,7 +146,7 @@ async function fireAll(timers, ms) {
   await flush();
 }
 
-function make({ projects = [entry('acme'), entry('beta')], settings = SETTINGS, sources = stubSources(), warnings, error, configDir } = {}) {
+function make({ projects = [entry('acme'), entry('beta')], settings = SETTINGS, sources = stubSources(), warnings, error, configDir, details } = {}) {
   const now = clock();
   const timers = fakeTimers();
   const logs = [];
@@ -160,6 +160,7 @@ function make({ projects = [entry('acme'), entry('beta')], settings = SETTINGS, 
     secrets,
     http: stubHttp(),
     sources,
+    ...(details && { details }),
     discoverers,
     now,
     timers,
@@ -513,4 +514,35 @@ test('projectSummary: count = my PRs, not release, with an attention signal; age
   };
   assert.deepEqual(projectSummary(snapshot, NOW), { id: 'acme', title: 'Acme', count: 3, ageMin: 40, rate: 'hourly', error: null, warnings: ['w'] });
   assert.equal(projectSummary({ ...snapshot, generatedAt: null }, NOW).ageMin, null);
+});
+
+test('detail: delegates to the project collector; unknown project → null; no viewed, open, touch or round', async () => {
+  const calls = [];
+  const details = {
+    github: async (args) => (calls.push(args), { description: 'd', comments: [] }),
+    bitbucket: async () => ({ description: null, comments: [] }),
+  };
+  const sources = stubSources({ Acme: [pr('acme-api', 1)] });
+  const { board, now, timers, secrets } = make({ sources, details });
+  board.start();
+  board.snapshot('acme');
+  await flush();
+  assert.equal(rounds(sources, 'Acme'), 1);
+  now.advance(SETTINGS.idleAfterSec + 1); // board closed, nothing viewed
+  assert.equal(board.rateOf('acme'), 'paused');
+  const pending = timers.pending().length;
+  const authCalls = secrets.calls.length;
+  const betaRounds = rounds(sources, 'Beta');
+
+  assert.equal(board.detail('nope', 'github:acme-api#1'), null);
+  assert.deepEqual(await board.detail('acme', 'github:acme-api#1'), { detail: { id: 'github:acme-api#1', description: 'd', comments: [] } });
+  assert.deepEqual(await board.detail('beta', 'github:acme-api#1'), { notFound: true }, 'another project does not know the PR');
+  await flush();
+  assert.equal(calls.length, 1);
+  assert.equal(board.rateOf('acme'), 'paused', 'not viewed, board not opened');
+  assert.equal(board.rateOf('beta'), 'paused');
+  assert.equal(rounds(sources, 'Acme'), 1, 'no round started');
+  assert.equal(rounds(sources, 'Beta'), betaRounds);
+  assert.equal(timers.pending().length, pending, 'no timer armed');
+  assert.equal(secrets.calls.length, authCalls + 1, 'one auth call, for the detail read');
 });

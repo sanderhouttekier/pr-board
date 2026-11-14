@@ -18,7 +18,8 @@ const TYPES = {
 };
 
 const PROJECT_PAGE = /^\/p\/[a-z0-9][a-z0-9-]*$/;
-const PROJECT_API = /^\/api\/p\/([^/]+)\/(snapshot|refresh)$/;
+const PROJECT_API = /^\/api\/p\/([^/]+)\/(snapshot|refresh|pr)$/;
+const API_METHODS = { snapshot: 'GET', refresh: 'POST', pr: 'GET' };
 
 const DERIVE_FILE = fileURLToPath(new URL('./derive.js', import.meta.url));
 
@@ -27,7 +28,7 @@ function sendJson(res, status, body, headers = {}) {
   res.end(JSON.stringify(body));
 }
 
-// Routes (SPEC "Server"). `board` is createBoard's: ids, has, list, snapshot, refresh.
+// Routes (SPEC "Server"). `board` is createBoard's: ids, has, list, snapshot, refresh, detail.
 export function createServer({ publicDir, board }) {
   const root = path.resolve(publicDir);
   const server = http.createServer(async (req, res) => {
@@ -60,7 +61,7 @@ export function createServer({ publicDir, board }) {
     }
 
     const urlPath = req.url.split('?')[0];
-    if (urlPath.startsWith('/api/')) return api(req, res, urlPath);
+    if (urlPath.startsWith('/api/')) return api(req, res, urlPath, new URLSearchParams(req.url.split('?')[1] ?? ''));
     if (urlPath === '/lib/derive.js' && req.method === 'GET') return serveFile(DERIVE_FILE);
     if (req.method !== 'GET' && req.method !== 'HEAD') return notFound();
 
@@ -86,17 +87,33 @@ export function createServer({ publicDir, board }) {
     return serveFile(file);
   });
 
-  function api(req, res, urlPath) {
+  function api(req, res, urlPath, query) {
     if (urlPath === '/api/projects' && req.method === 'GET') {
       return sendJson(res, 200, board.list(), { 'cache-control': 'no-store' });
     }
     const m = PROJECT_API.exec(urlPath);
-    const route = m && ((m[2] === 'snapshot' && req.method === 'GET') || (m[2] === 'refresh' && req.method === 'POST'));
-    if (!route) return sendJson(res, 404, { error: 'Not found' });
+    if (!m || API_METHODS[m[2]] !== req.method) return sendJson(res, 404, { error: 'Not found' });
     const id = m[1];
     if (!board.has(id)) return sendJson(res, 404, { error: `Unknown project \`${id}\`` });
     if (m[2] === 'snapshot') return sendJson(res, 200, board.snapshot(id), { 'cache-control': 'no-store' });
+    if (m[2] === 'pr') return prDetail(res, id, query.get('id'));
     return sendJson(res, 202, board.refresh(id));
+  }
+
+  // GET /api/p/<id>/pr?id=<pr id> (SPEC "PR detail"): only a PR the board already holds.
+  async function prDetail(res, id, prId) {
+    const noStore = { 'cache-control': 'no-store' };
+    if (!prId) return sendJson(res, 400, { error: 'Missing `id`: the PR id, e.g. `github:acme-api#101`' }, noStore);
+    let r;
+    try {
+      r = await board.detail(id, prId);
+    } catch {
+      r = { error: 'PR detail failed' };
+    }
+    if (!r) return sendJson(res, 404, { error: `Unknown project \`${id}\`` }, noStore);
+    if (r.notFound) return sendJson(res, 404, { error: 'Unknown PR: not among the open PRs of this project' }, noStore);
+    if (r.error) return sendJson(res, 502, { error: r.error }, noStore);
+    return sendJson(res, 200, r.detail, noStore);
   }
 
   return server;

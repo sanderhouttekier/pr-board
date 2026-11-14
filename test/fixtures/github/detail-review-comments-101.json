@@ -1,0 +1,22 @@
+[
+  {
+    "id": 7001,
+    "user": { "login": "ada", "type": "User" },
+    "created_at": "2026-11-10T09:10:00Z",
+    "updated_at": "2026-11-10T09:10:00Z",
+    "body": "Should this be `encodeURIComponent`?",
+    "path": "src/login/redirect.ts",
+    "line": 12,
+    "original_line": 10
+  },
+  {
+    "id": 7002,
+    "user": { "login": "linus", "type": "User" },
+    "created_at": "2026-11-10T09:20:00Z",
+    "updated_at": "2026-11-10T09:20:00Z",
+    "body": "This line moved in the last push.",
+    "path": "src/login/redirect.ts",
+    "line": null,
+    "original_line": 7
+  }
+]

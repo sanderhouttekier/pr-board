@@ -366,11 +366,41 @@ describe('render', () => {
     assert.match(html, /<a class="pr-link" href="https:\/\/example\.test\/acme-backend\/pull\/2504"[^>]* title="Open backend #2504 on Bitbucket">/);
   });
 
-  test('PR rows have no external-link icon and end with an empty fix column', () => {
+  test('PR rows have no external-link icon and end with the fix column, then the detail column', () => {
     for (const r of rowsOf(html)) {
       assert.ok(!r.includes('icon-ext'), 'no external icon in a PR row');
-      assert.match(r, /<span class="fixcol">(<button [^]*<\/button>)?<\/span>$/, 'fixcol is the last child');
+      assert.match(r, /<span class="fixcol">(<button [^]*?<\/button>)?<\/span><span class="detailcol"><button [^]*<\/button><\/span>$/, 'detailcol is the last child, right after fixcol');
     }
+  });
+
+  test('every PR row gets a caret button for the detail panel, closed by default', () => {
+    const rows = rowsOf(html);
+    for (const r of rows) assert.match(r, /class="detail-btn"/);
+    assert.match(html, /<span class="detailcol"><button type="button" class="detail-btn" data-action="detail" data-value="github:acme-app#551" aria-expanded="false" aria-controls="pr-panel" aria-label="Show description and comments for app #551" title="Show description and comments"><svg class="icon-caret"[^>]*>[^]*?<\/svg><\/button><\/span><\/div>/);
+    assert.ok(!html.includes('aria-expanded="true" aria-controls="pr-panel"'));
+    assert.ok(!html.includes('detail-open'));
+  });
+
+  test('the open PR: its row is highlighted and its caret expanded; every other row stays closed', () => {
+    const id = 'github:acme-app#551';
+    const vm = view.viewModel(snapshot(), ui({ panelId: id }));
+    const rows = vm.groups.flatMap((g) => g.rows);
+    assert.deepEqual(rows.filter((r) => r.detailOpen).map((r) => r.id), [id]);
+    const h = view.render(vm);
+    assert.equal((h.match(/<div class="pr detail-open">/g) ?? []).length, 1);
+    assert.match(h, /<div class="pr detail-open"><a class="pr-link" href="https:\/\/example\.test\/acme-app\/pull\/551"/);
+    assert.match(h, /data-value="github:acme-app#551" aria-expanded="true" aria-controls="pr-panel"/);
+    assert.equal((h.match(/aria-expanded="true" aria-controls="pr-panel"/g) ?? []).length, 1);
+  });
+
+  test('caret label and value are escaped', () => {
+    const [e] = derive.enrich([makePr({ number: 990, repoShort: 'app', source: 'chore/x' })], ctx);
+    e.id = 'github:"><b>x</b>#1';
+    e.repoShort = '<b>r</b>';
+    const h = view.render(view.viewModel(snapshot({ prs: [e], tickets: {} }), ui()));
+    assert.ok(!h.includes('<b>'), h);
+    assert.match(h, /data-value="github:&quot;&gt;&lt;b&gt;x&lt;\/b&gt;#1"/);
+    assert.match(h, /aria-label="Show description and comments for &lt;b&gt;r&lt;\/b&gt; #990"/);
   });
 
   test('Jira key link keeps its external-link icon', () => {
@@ -567,15 +597,15 @@ describe('fix prompts', () => {
       assert.equal(m[1], 'danger');
       assert.equal(m[2], 'false');
       assert.equal(m[3], 'fix-bitbucket-acme-backend-801');
-      assert.ok(!h.includes(`data-value="${idOf(803)}"`), 'stale-only row has no button');
-      assert.ok(!h.includes(`data-value="${idOf(810)}"`), 'behind-only row has no button');
+      assert.ok(!h.includes(`data-action="fix" data-value="${idOf(803)}"`), 'stale-only row has no button');
+      assert.ok(!h.includes(`data-action="fix" data-value="${idOf(810)}"`), 'behind-only row has no button');
       assert.ok(!h.includes('class="fix-drawer"'));
     });
 
     test('open row: aria-expanded true and drawer right after the row with escaped prompt', () => {
       const h = view.render(vmOf({ fixOpen: new Set([idOf(801)]) }));
       assert.equal(h.match(btnRe(idOf(801)))[2], 'true');
-      assert.match(h, /<span class="fixcol"><button [^]*?<\/button><\/span><\/div><div class="fix-drawer" id="fix-bitbucket-acme-backend-801">/);
+      assert.match(h, /<span class="fixcol"><button [^]*?<\/button><\/span><span class="detailcol"><button [^]*?<\/button><\/span><\/div><div class="fix-drawer" id="fix-bitbucket-acme-backend-801">/);
       const drawer = h.slice(h.indexOf('<div class="fix-drawer"'));
       assert.match(drawer, /<pre class="fix-prompt">Fix backend #801/);
       assert.ok(drawer.includes('Title: Backend &lt;script&gt;alert(1)&lt;/script&gt;'));
