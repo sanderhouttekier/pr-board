@@ -20,9 +20,9 @@ export function projectSummary(snapshot, now) {
 }
 
 /**
- * createBoard({ projects, settings, warnings, error, configDir, secrets, http, sources, lockCheck, discoverers, now, timers, log })
+ * createBoard({ projects, settings, warnings, error, configDir, secrets, http, sources, details, lockCheck, discoverers, now, timers, log })
  * `projects`, `warnings` and `error` come from loadBoard. One `http` and one `secrets` serve every project.
- * → { start, stop, ids, has, rateOf, list, snapshot, refresh }
+ * → { start, stop, ids, has, rateOf, list, snapshot, refresh, detail }
  */
 export function createBoard({
   projects = [],
@@ -33,6 +33,7 @@ export function createBoard({
   secrets,
   http,
   sources,
+  details,
   lockCheck,
   discoverers,
   now = Date.now,
@@ -49,6 +50,7 @@ export function createBoard({
       secrets,
       http,
       ...(sources && { sources }),
+      ...(details && { details }),
       ...(lockCheck && { lockCheck }),
       discovery: createDiscovery({ http, ...(discoverers && { discoverers }) }),
       identities,
@@ -176,6 +178,13 @@ export function createBoard({
     return { started };
   }
 
+  // GET /api/p/<id>/pr: the collector's PR detail. Not a snapshot request: it marks nothing open or
+  // viewed, touches no rate and starts no round. null for an unknown id.
+  function detail(id, prId) {
+    const e = byId.get(id);
+    return e ? e.collector.detail(prId) : null;
+  }
+
   return {
     start,
     stop,
@@ -185,5 +194,6 @@ export function createBoard({
     list,
     snapshot,
     refresh,
+    detail,
   };
 }

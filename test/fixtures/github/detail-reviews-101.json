@@ -1,0 +1,22 @@
+[
+  {
+    "id": 8001,
+    "user": { "login": "linus", "type": "User" },
+    "body": "Looks good, two nits below.",
+    "state": "COMMENTED",
+    "submitted_at": "2026-11-10T09:05:00Z"
+  },
+  {
+    "id": 8002,
+    "user": { "login": "ada", "type": "User" },
+    "body": "  \n",
+    "state": "APPROVED",
+    "submitted_at": "2026-11-10T09:40:00Z"
+  },
+  {
+    "id": 8003,
+    "user": { "login": "grace", "type": "User" },
+    "body": "Still writing this one.",
+    "state": "PENDING"
+  }
+]

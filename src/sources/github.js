@@ -93,6 +93,42 @@ export function githubLockReader({ http, owner, auth }) {
   };
 }
 
+/**
+ * One PR's description and comments (SPEC "PR detail"), read on demand, never in a round.
+ * `auth` is the Authorization value (never logged). Four GETs in parallel: the PR, its general
+ * (issue) comments, its review summaries and its inline review comments, the lists over all pages. Rejects on failure.
+ * → { description: string | null, comments: [{ author, bot, createdAt, body, path, line }] } (not sorted)
+ */
+export async function githubDetail({ http, auth, owner, repo, number }) {
+  const opts = { auth, headers: HEADERS };
+  const base = `${API}/repos/${owner}/${repo}`;
+  const comment = (c, inline) => ({
+    author: c.user?.login ?? 'unknown',
+    bot: c.user?.type === 'Bot',
+    createdAt: c.created_at,
+    body: c.body ?? '',
+    path: inline ? c.path ?? null : null,
+    line: inline ? c.line ?? c.original_line ?? null : null,
+  });
+  // A review's summary text is a general comment; its state (approved, …) is never exposed.
+  // Pending reviews (no submitted_at) and reviews without text are skipped.
+  const summary = (r) => ({ ...comment(r, false), createdAt: r.submitted_at });
+  const [pr, general, reviews, review] = await Promise.all([
+    http.get(`${base}/pulls/${number}`, opts),
+    http.getAll(`${base}/issues/${number}/comments?per_page=100`, opts),
+    http.getAll(`${base}/pulls/${number}/reviews?per_page=100`, opts),
+    http.getAll(`${base}/pulls/${number}/comments?per_page=100`, opts),
+  ]);
+  return {
+    description: pr?.body || null,
+    comments: [
+      ...general.map((c) => comment(c, false)),
+      ...reviews.filter((r) => r.submitted_at && r.body?.trim()).map(summary),
+      ...review.map((c) => comment(c, true)),
+    ],
+  };
+}
+
 function shortError(err) {
   const status = err?.status ? `${err.status} ` : '';
   const text = String(err?.body || err?.message || err).replace(/\s+/g, ' ').trim();

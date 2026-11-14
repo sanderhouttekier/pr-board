@@ -1,0 +1,22 @@
+{
+  "pagelen": 100,
+  "values": [
+    {
+      "id": 503,
+      "created_on": "2026-11-10T08:30:00.000000+00:00",
+      "updated_on": "2026-11-10T08:30:00.000000+00:00",
+      "content": { "raw": "Typo in the header name.", "markup": "markdown" },
+      "user": { "nickname": "ada" },
+      "inline": { "path": "src/Invoice/Export.php", "to": 42, "from": null }
+    },
+    {
+      "id": 504,
+      "created_on": "2026-11-10T08:40:00.000000+00:00",
+      "updated_on": "2026-11-10T08:40:00.000000+00:00",
+      "content": { "raw": "Why was this removed?", "markup": "markdown" },
+      "user": { "display_name": "Grace Example", "nickname": "grace" },
+      "inline": { "path": "src/Invoice/Legacy.php", "to": null, "from": 7 }
+    }
+  ],
+  "page": 2
+}

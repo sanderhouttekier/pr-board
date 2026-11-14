@@ -1,7 +1,7 @@
 // One collector per project (SPEC "Collector and polling"): rounds, per-source caches and last good
 // data, the project snapshot. No timers: src/board.js decides when a round runs.
-import { collectGithub, githubViewer } from './sources/github.js';
-import { collectBitbucket, bitbucketViewer } from './sources/bitbucket.js';
+import { collectGithub, githubViewer, githubDetail } from './sources/github.js';
+import { collectBitbucket, bitbucketViewer, bitbucketDetail } from './sources/bitbucket.js';
 import { collectJira, jiraSites } from './sources/jira.js';
 import { createDiscovery, repoSet, resolveRepoRef } from './discover.js';
 import { describeError, describeWarning } from './config.js';
@@ -11,6 +11,7 @@ const ERROR_MAX = 300;
 const PR_HOSTS = ['github', 'bitbucket'];
 const SOURCES = ['github', 'bitbucket', 'jira'];
 const NO_CREDENTIAL = Object.freeze({ ref: '', override: false });
+const DETAIL_TTL_MS = 60_000;
 
 const code = (s) => `\`${s}\``;
 
@@ -86,9 +87,10 @@ export function resolveSharedPackages(project, repos) {
 }
 
 /**
- * createCollector({ project, settings, boardWarnings, secrets, http, sources, lockCheck, discovery, identities, now, log })
+ * createCollector({ project, settings, boardWarnings, secrets, http, sources, details, lockCheck, discovery, identities, now, log })
  * `project` is a loadBoard entry ({ id, title, ok, error, warnings, project, credentials }).
- * → { id, ok, refresh, busy, lastDoneAt, needsFollowUp, snapshot({ rate }) }
+ * `details` are the PR detail readers per host (SPEC "PR detail"), read on demand by `detail(prId)`.
+ * → { id, ok, refresh, busy, lastDoneAt, needsFollowUp, snapshot({ rate }), detail(prId) }
  */
 export function createCollector({
   project: entry,
@@ -97,6 +99,7 @@ export function createCollector({
   secrets,
   http,
   sources = { github: collectGithub, bitbucket: collectBitbucket, jira: collectJira },
+  details = { github: githubDetail, bitbucket: bitbucketDetail },
   lockCheck = passThroughLocks,
   discovery = createDiscovery({ http }),
   identities = createIdentities({ http }),
@@ -342,9 +345,44 @@ export function createCollector({
     };
   }
 
+  // PR detail (SPEC "PR detail"): only a PR among the last good data, never an arbitrary repo or number.
+  // Cached per (PR, updatedAt) for 60 s; a failure is not cached. Never part of a round, starts none.
+  // → { detail: { id, description, comments } } | { notFound: true } | { error }
+  const detailCache = new Map(); // `${prId}\0${updatedAt}` → { at, pending }
+  async function detail(prId) {
+    const pr = enriched.find((p) => p.id === prId);
+    if (!pr || !details[pr.host] || !ownerOf(pr.host)) return { notFound: true };
+    const at = now();
+    for (const [k, v] of detailCache) if (at - v.at >= DETAIL_TTL_MS) detailCache.delete(k);
+    const key = `${prId}\0${pr.updatedAt}`;
+    let hit = detailCache.get(key);
+    if (!hit) {
+      hit = { at, pending: readDetail(pr) };
+      detailCache.set(key, hit);
+      hit.pending.then((r) => {
+        if (r.error && detailCache.get(key) === hit) detailCache.delete(key);
+      });
+    }
+    return hit.pending;
+  }
+
+  async function readDetail(pr) {
+    try {
+      const auth = await secrets.auth(pr.host, credential(pr.host));
+      const read = await details[pr.host]({ http, auth, owner: ownerOf(pr.host), repo: pr.repo, number: pr.number });
+      // Array.prototype.sort is stable: comments with the same createdAt keep the reader's order.
+      const time = (c) => Date.parse(c.createdAt) || 0;
+      const comments = [...(read.comments ?? [])].sort((a, b) => time(a) - time(b));
+      return { detail: { id: pr.id, description: read.description ?? null, comments } };
+    } catch (err) {
+      return { error: shortError(err) };
+    }
+  }
+
   return {
     id,
     ok: project !== null,
+    detail,
     refresh,
     busy: () => inFlight !== null,
     lastDoneAt: () => lastDoneAt,

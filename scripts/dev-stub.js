@@ -2,6 +2,7 @@
 // No network, no secrets, no OS tools. For checking the page in a browser:
 //   PORT=7431 node scripts/dev-stub.js [--broken]
 // `--broken` adds a third project with a config error. PRs are fixture-shaped (SPEC "Normalized PR").
+// PR detail (`/api/p/<id>/pr?id=…`) comes from stub readers: made up per PR id, after a short delay.
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -143,8 +144,70 @@ async function stubJira(keysBySite, { sites }) {
   return { tickets };
 }
 
+// --- PR detail: made-up description and comments, deterministic per PR id ---
+
+const DETAIL_DELAY_MS = 300; // so the page's loading state shows
+const EMPTY_DETAIL = new Set(['bitbucket:acme-backend#13', 'github:nova-docs#4']); // no description, no comments
+const COMMENT_COUNT = { 'github:acme-api#101': 5, 'bitbucket:acme-backend#12': 4 }; // others: from the id
+const PEOPLE = { github: ['ada', 'grace', 'linus'], bitbucket: ['Ada Example', 'Grace Example', 'Linus Example'] };
+const REMARKS = [
+  'Looks good to me.',
+  'Can we keep the old behaviour behind a flag for one release?',
+  'Should this use `encodeURIComponent`?',
+  'Nit: this name reads oddly, maybe `nextUrl`?',
+  'Pushed a fix, have another look.',
+];
+
+const hashOf = (text) => [...text].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
+
+function stubDescription(title, repo, number) {
+  return [
+    '## What',
+    '',
+    `${title}. Touches \`${repo}\` only (#${number}).`,
+    '',
+    '- keeps the `next` parameter',
+    '- adds a test for the empty case',
+    '- notes: https://docs.example.com/acme/pull-requests',
+    '',
+    '```js',
+    "const next = params.get('next') ?? '/';",
+    '```',
+  ].join('\n');
+}
+
+// A stub detail reader for one host: the same arguments as the real ones, no network.
+function stubDetail(host, { now, delayMs }) {
+  return async ({ repo, number }) => {
+    if (delayMs > 0) await new Promise((r) => setTimeout(r, delayMs));
+    const id = `${host}:${repo}#${number}`;
+    if (EMPTY_DETAIL.has(id)) return { description: null, comments: [] };
+    const h = hashOf(id);
+    const title = (PRS[`${host}:${repo}`] ?? []).find((p) => p.number === number)?.title ?? `PR ${number}`;
+    const count = COMMENT_COUNT[id] ?? h % 6;
+    const people = PEOPLE[host];
+    const withBot = host === 'github' && (h % 2 === 0 || id === 'github:acme-api#101');
+    const comments = Array.from({ length: count }, (_, i) => {
+      const createdAt = new Date(now() - (count - i) * 45 * 60_000).toISOString();
+      if (withBot && i === 0) {
+        return { author: 'acme-ci[bot]', bot: true, createdAt, body: `Preview deployed: https://preview.example.com/${repo}/${number}`, path: null, line: null };
+      }
+      const inline = (h + i) % 2 === 1;
+      return {
+        author: people[(h + i) % people.length],
+        bot: false,
+        createdAt,
+        body: REMARKS[(h + i) % REMARKS.length],
+        path: inline ? `src/${repo.replace(/^[a-z]+-/, '')}/index.ts` : null,
+        line: inline ? 10 + ((h + i) % 90) : null,
+      };
+    });
+    return { description: stubDescription(title, repo, number), comments };
+  };
+}
+
 /** The dev board: createBoard over the made-up projects with stub upstream. */
-export function devStubBoard({ now = Date.now, timers, log = console.log, broken = false } = {}) {
+export function devStubBoard({ now = Date.now, timers, log = console.log, broken = false, detailDelayMs = DETAIL_DELAY_MS } = {}) {
   const projects = [
     entry('acme', ACME),
     entry('nova', NOVA, [{ file: `${DIR}/projects/nova.json`, path: 'colour', message: 'Unknown key `colour`, ignored' }]),
@@ -159,6 +222,7 @@ export function devStubBoard({ now = Date.now, timers, log = console.log, broken
       get: async (url) => (url.startsWith('https://api.github.com/') ? { login: 'ada' } : { uuid: '{ada}' }),
     },
     sources: { github: stubSource('github'), bitbucket: stubSource('bitbucket'), jira: stubJira },
+    details: { github: stubDetail('github', { now, delayMs: detailDelayMs }), bitbucket: stubDetail('bitbucket', { now, delayMs: detailDelayMs }) },
     discoverers: { github: async ({ owner }) => REPOS[owner] ?? [], bitbucket: async ({ owner }) => REPOS[owner] ?? [] },
     now,
     ...(timers && { timers }),

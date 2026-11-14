@@ -153,7 +153,7 @@ function clock(start = NOW) {
 
 function make({
   github, bitbucket, jira, secrets = stubSecrets(), logs = [], now = () => NOW, http = makeHttp(),
-  project = entry(), settings = SETTINGS, discoverers = stubDiscoverers(), lockCheck, identities, boardWarnings,
+  project = entry(), settings = SETTINGS, discoverers = stubDiscoverers(), lockCheck, identities, boardWarnings, details,
 } = {}) {
   const sources = {
     github: github ?? scripted([{ prs: [] }]),
@@ -168,6 +168,7 @@ function make({
     http,
     sources,
     lockCheck,
+    ...(details && { details }),
     discovery: createDiscovery({ http, discoverers }),
     identities,
     now,
@@ -780,4 +781,154 @@ test('repos: a host the project does not use gets no auth, discovery or source c
   assert.equal(http.calls.filter((c) => c.url === GH_USER).length, 0);
   assert.equal(collector.snapshot().sources.github.ok, true);
   assert.deepEqual(collector.snapshot().project.hosts, { bitbucket: { workspace: 'acme' } });
+});
+
+// --- PR detail (on demand, never in a round) ---
+
+// Stub detail readers: record their args, answer from `result` (a value, a function of the args, or an Error).
+function stubDetails(result = { description: 'desc', comments: [] }) {
+  const calls = [];
+  const make = (host) => async (args) => {
+    calls.push({ host, ...args });
+    const r = typeof result === 'function' ? result(args) : result;
+    if (r instanceof Error) throw r;
+    return structuredClone(r);
+  };
+  return { github: make('github'), bitbucket: make('bitbucket'), calls };
+}
+
+test('detail: a PR the collector does not hold is not found, with no auth or upstream call', async () => {
+  const details = stubDetails();
+  const { collector, secrets } = make({ details, github: scripted([{ prs: [pr('github', 'acme-api', 1)] }]) });
+  assert.deepEqual(await collector.detail('github:acme-api#1'), { notFound: true }, 'no round yet: no data');
+  await collector.refresh();
+  const authCalls = secrets.calls.length;
+  for (const id of ['github:acme-api#2', 'github:acme-other#1', 'bitbucket:acme-api#1', '', 'nonsense']) {
+    assert.deepEqual(await collector.detail(id), { notFound: true }, id);
+  }
+  assert.equal(details.calls.length, 0);
+  assert.equal(secrets.calls.length, authCalls);
+});
+
+test('detail: reads a known PR with its host auth, the project owner, repo and number; comments sorted by createdAt', async () => {
+  const details = stubDetails({
+    description: '## What',
+    comments: [
+      { author: 'b', bot: false, createdAt: '2026-11-10T09:00:00Z', body: 'second', path: null, line: null },
+      { author: 'a', bot: false, createdAt: '2026-11-10T08:00:00Z', body: 'first', path: 'src/a.ts', line: 12 },
+      { author: 'c', bot: true, createdAt: '2026-11-10T09:00:00Z', body: 'third (tie keeps order)', path: null, line: null },
+    ],
+  });
+  const { collector, secrets } = make({
+    details,
+    github: scripted([{ prs: [pr('github', 'acme-api', 1)] }]),
+    bitbucket: scripted([{ prs: [pr('bitbucket', 'acme-worker', 2)] }]),
+  });
+  await collector.refresh();
+  secrets.calls.length = 0;
+  const gh = await collector.detail('github:acme-api#1');
+  assert.deepEqual(gh, {
+    detail: {
+      id: 'github:acme-api#1',
+      description: '## What',
+      comments: [
+        { author: 'a', bot: false, createdAt: '2026-11-10T08:00:00Z', body: 'first', path: 'src/a.ts', line: 12 },
+        { author: 'b', bot: false, createdAt: '2026-11-10T09:00:00Z', body: 'second', path: null, line: null },
+        { author: 'c', bot: true, createdAt: '2026-11-10T09:00:00Z', body: 'third (tie keeps order)', path: null, line: null },
+      ],
+    },
+  });
+  await collector.detail('bitbucket:acme-worker#2');
+  const [g, b] = details.calls;
+  assert.deepEqual({ host: g.host, auth: g.auth, owner: g.owner, repo: g.repo, number: g.number }, { host: 'github', auth: 'Bearer gh-secret', owner: 'acme-corp', repo: 'acme-api', number: 1 });
+  assert.deepEqual({ host: b.host, auth: b.auth, owner: b.owner, repo: b.repo, number: b.number }, { host: 'bitbucket', auth: 'Basic bb-secret', owner: 'acme', repo: 'acme-worker', number: 2 });
+  assert.ok(g.http, 'the shared http is passed');
+  assert.deepEqual(secrets.calls, [
+    { host: 'github', credential: CREDENTIALS.github },
+    { host: 'bitbucket', credential: CREDENTIALS.bitbucket },
+  ]);
+});
+
+test('detail: cached per (PR, updatedAt) for 60 s; a changed PR or an older entry refetches', async () => {
+  const details = stubDetails();
+  const now = clock();
+  const github = scripted([
+    { prs: [pr('github', 'acme-api', 1)] },
+    { prs: [pr('github', 'acme-api', 1, { updatedAt: '2026-11-06T09:00:00Z' })] },
+  ]);
+  const { collector } = make({ details, now, github });
+  await collector.refresh();
+  await collector.detail('github:acme-api#1');
+  now.advance(59);
+  await collector.detail('github:acme-api#1');
+  assert.equal(details.calls.length, 1, 'cache hit within 60 s');
+  await collector.refresh(); // updatedAt changed
+  await collector.detail('github:acme-api#1');
+  assert.equal(details.calls.length, 2, 'a changed PR refetches');
+  now.advance(60);
+  await collector.detail('github:acme-api#1');
+  assert.equal(details.calls.length, 3, 'expired after 60 s');
+});
+
+test('detail: concurrent requests for the same PR share one read', async () => {
+  const details = stubDetails();
+  const { collector } = make({ details, github: scripted([{ prs: [pr('github', 'acme-api', 1)] }]) });
+  await collector.refresh();
+  const [a, b] = await Promise.all([collector.detail('github:acme-api#1'), collector.detail('github:acme-api#1')]);
+  assert.deepEqual(a, b);
+  assert.equal(details.calls.length, 1);
+});
+
+test('detail: an upstream or auth failure is a short error without token text, and is not cached', async () => {
+  const err = Object.assign(new Error('GET https://api.github.com/repos/acme-corp/acme-api/pulls/1 failed with 500: boom\nmore'), { status: 500 });
+  let fail = true;
+  const details = stubDetails(() => (fail ? err : { description: null, comments: [] }));
+  const { collector } = make({ details, github: scripted([{ prs: [pr('github', 'acme-api', 1)] }]) });
+  await collector.refresh();
+  const r = await collector.detail('github:acme-api#1');
+  assert.deepEqual(r, { error: 'GET https://api.github.com/repos/acme-corp/acme-api/pulls/1 failed with 500: boom' });
+  assert.doesNotMatch(JSON.stringify(r), /secret/);
+  fail = false;
+  assert.deepEqual(await collector.detail('github:acme-api#1'), { detail: { id: 'github:acme-api#1', description: null, comments: [] } });
+
+  const noToken = make({
+    details: stubDetails(),
+    secrets: stubSecrets({ github: new Error('No GitHub token: run `gh auth login`'), bitbucket: 'Basic bb-secret', jira: 'Basic jira-secret' }),
+    bitbucket: scripted([{ prs: [pr('bitbucket', 'acme-worker', 2)] }]),
+  });
+  await noToken.collector.refresh();
+  // GitHub auth failed in the round, so there are no GitHub PRs; Bitbucket's auth works.
+  assert.deepEqual(await noToken.collector.detail('github:acme-api#1'), { notFound: true });
+});
+
+test('detail: an auth failure at detail time is an error result', async () => {
+  let authFails = false;
+  const secrets = {
+    calls: [],
+    auth: async (host) => {
+      if (authFails) throw new Error(`No ${host} token`);
+      return 'Bearer gh-secret';
+    },
+  };
+  const details = stubDetails();
+  const { collector } = make({ details, secrets, github: scripted([{ prs: [pr('github', 'acme-api', 1)] }]) });
+  await collector.refresh();
+  authFails = true;
+  assert.deepEqual(await collector.detail('github:acme-api#1'), { error: 'No github token' });
+  assert.equal(details.calls.length, 0);
+});
+
+test('detail: never runs during a round and starts none', async () => {
+  const details = stubDetails();
+  const github = scripted([{ prs: [pr('github', 'acme-api', 1)] }]);
+  const { collector } = make({ details, github });
+  await collector.refresh();
+  await collector.detail('github:acme-api#1');
+  assert.equal(github.calls.length, 1);
+  assert.equal(collector.busy(), false);
+});
+
+test('detail: a project with an error has no PRs to read', async () => {
+  const { collector } = make({ details: stubDetails(), project: entry({ ok: false, error: { file: 'x', errors: [] }, project: null }) });
+  assert.deepEqual(await collector.detail('github:acme-api#1'), { notFound: true });
 });
