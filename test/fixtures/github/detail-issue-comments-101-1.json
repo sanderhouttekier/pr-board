@@ -1,0 +1,16 @@
+[
+  {
+    "id": 9001,
+    "user": { "login": "ada", "type": "User" },
+    "created_at": "2026-11-10T09:00:00Z",
+    "updated_at": "2026-11-10T09:00:00Z",
+    "body": "Looks good, one question below."
+  },
+  {
+    "id": 9002,
+    "user": { "login": "grace", "type": "User" },
+    "created_at": "2026-11-10T09:30:00Z",
+    "updated_at": "2026-11-10T09:30:00Z",
+    "body": "Answered inline."
+  }
+]

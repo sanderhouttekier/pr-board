@@ -83,6 +83,31 @@ export function bitbucketLockReader({ http, owner, auth }) {
   };
 }
 
+/**
+ * One PR's description and comments (SPEC "PR detail"), read on demand, never in a round.
+ * `owner` is the workspace; `auth` is the Authorization value (never logged). The PR and every page
+ * of its comments, in parallel; deleted comments are skipped. Rejects on failure.
+ * → { description: string | null, comments: [{ author, bot, createdAt, body, path, line }] } (not sorted)
+ */
+export async function bitbucketDetail({ http, auth, owner, repo, number }) {
+  const base = `${API}/${owner}/${repo}/pullrequests/${number}`;
+  const [pr, comments] = await Promise.all([
+    http.get(base, { auth }),
+    http.getAll(`${base}/comments?pagelen=100`, { auth }),
+  ]);
+  return {
+    description: pr?.description || pr?.summary?.raw || null,
+    comments: comments.filter((c) => !c.deleted).map((c) => ({
+      author: c.user?.display_name ?? c.user?.nickname ?? 'unknown',
+      bot: false,
+      createdAt: c.created_on,
+      body: c.content?.raw ?? '',
+      path: c.inline?.path ?? null,
+      line: c.inline ? c.inline.to ?? c.inline.from ?? null : null,
+    })),
+  };
+}
+
 // The token owner's account uuid, for "mine". GET only.
 export async function bitbucketViewer({ http, auth }) {
   const body = await http.get('https://api.bitbucket.org/2.0/user?fields=uuid', { auth });

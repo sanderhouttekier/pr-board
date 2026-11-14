@@ -552,6 +552,26 @@ These are today's rules, with owner and workspace from the project file and repo
 
 **Viewer identity** ("mine"): GitHub `GET /user` → `login`, Bitbucket `GET /2.0/user?fields=uuid` → `uuid`. It's looked up once per `(host, ref)`, because credential overrides can be other accounts. It's cached after success and retried next round after a failure. A `mine.<host>` value in the personal config replaces the lookup.
 
+### PR detail
+
+A PR's description and comments, read only when the page asks (`GET /api/p/<id>/pr?id=<pr id>`), never during a round. Every call goes through `http.get` / `http.getAll` (GET only) with the host credential the rounds use (`secrets.auth(host, credential)`).
+
+- **GitHub** (owner from the project), the three in parallel:
+  - `GET /repos/{owner}/{repo}/pulls/{n}` → `body` as the description (empty → null);
+  - `GET /repos/{owner}/{repo}/issues/{n}/comments?per_page=100`, all pages: general comments, `path` and `line` null;
+  - `GET /repos/{owner}/{repo}/pulls/{n}/comments?per_page=100`, all pages: inline comments, `path`, `line ?? original_line ?? null`.
+
+  Author `user.login`, `bot` when `user.type` is `Bot`, `created_at`, `body`.
+- **Bitbucket** (workspace from the project), in parallel:
+  - `GET /2.0/repositories/{workspace}/{repo}/pullrequests/{id}` → `description`, else `summary.raw` (empty → null);
+  - `GET …/pullrequests/{id}/comments?pagelen=100`, all pages via `next`. Deleted comments are skipped. Author `user.display_name`, else `user.nickname`, else `unknown`; `bot` is always false; `created_on`, `content.raw`, `inline.path` or null, `inline.to ?? inline.from ?? null`.
+
+Rules:
+- **Known PRs only.** The id must be one of the project's open PRs in the collector's last good data. Anything else is a 404, so the route can never read an arbitrary repo or number from the query.
+- **Cache.** Per `(PR id, updatedAt)` for 60 s, so reopening is cheap and a changed PR refetches. Failures aren't cached; concurrent requests for one PR share one read.
+- **Not a snapshot.** It marks nothing viewed or open, touches no rate and starts no round.
+- Comments are sorted by `createdAt`, ascending and stable. Errors are the collector's short one-line message (no token, no auth header).
+
 ## Shared package check
 
 For each entry in `sharedPackages` (shared package repo `S`, `kind: composer`, package `P`, consumers `C`), and for each open PR in a consumer repo, the consumer's source reads at the PR's `headSha`. Both repos may be on either host, and each read uses its own repo's host and credential.
@@ -638,6 +658,7 @@ It binds to `127.0.0.1` only, with today's Host/Origin guard.
 | `GET /api/projects` | The tab data per project: `{ id, title, count, ageMin, rate: 'viewed' \| 'hourly' \| 'paused', error, warnings }`. It marks the board open, but no project as viewed. |
 | `GET /api/p/<id>/snapshot` | The project snapshot. It marks the board open and the project viewed. |
 | `POST /api/p/<id>/refresh` | 202. Starts a round for that project if none is running. |
+| `GET /api/p/<id>/pr?id=<pr id>` | The PR detail (see "PR detail"), `cache-control: no-store`: 200 `{ id, description, comments: [{ author, bot, createdAt, body, path, line }] }`; 400 without `id`; 404 for an unknown project or a PR that isn't among its open PRs; 502 `{ error }` when an upstream read or the token fails. It marks nothing viewed or open. |
 | `GET /lib/derive.js` | As today. |
 | static `public/` | As today. |
 

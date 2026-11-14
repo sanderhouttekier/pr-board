@@ -1,0 +1,8 @@
+{
+  "number": 101,
+  "title": "Fix login redirect",
+  "body": "## What\n\nSends people back to the page they came from after login.\n\n- keeps the `next` parameter\n\nCard: https://trello.com/c/AbC123/95-fix-login",
+  "user": { "login": "grace", "type": "User" },
+  "created_at": "2026-11-09T08:00:00Z",
+  "updated_at": "2026-11-10T11:00:00Z"
+}

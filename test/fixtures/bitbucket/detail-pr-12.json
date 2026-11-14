@@ -1,0 +1,8 @@
+{
+  "id": 12,
+  "title": "SHOP-42 Invoice export endpoint",
+  "description": "## What\n\nAdds the invoice export endpoint.\n\n- CSV only for now",
+  "summary": { "raw": "## What\n\nAdds the invoice export endpoint.\n\n- CSV only for now" },
+  "state": "OPEN",
+  "updated_on": "2026-11-10T11:00:00.000000+00:00"
+}
