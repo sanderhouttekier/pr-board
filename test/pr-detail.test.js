@@ -33,15 +33,17 @@ const GH_PULL = `${GH}/pulls/101`;
 const GH_ISSUE_1 = `${GH}/issues/101/comments?per_page=100`;
 const GH_ISSUE_2 = 'https://api.github.com/repositories/1/issues/101/comments?per_page=100&page=2';
 const GH_REVIEW = `${GH}/pulls/101/comments?per_page=100`;
+const GH_REVIEWS = `${GH}/pulls/101/reviews?per_page=100`;
 const GH_ROUTES = {
   [GH_PULL]: { file: 'github/detail-pull-101.json' },
   [GH_ISSUE_1]: { file: 'github/detail-issue-comments-101-1.json', link: `<${GH_ISSUE_2}>; rel="next", <${GH_ISSUE_2}>; rel="last"` },
   [GH_ISSUE_2]: { file: 'github/detail-issue-comments-101-2.json' },
   [GH_REVIEW]: { file: 'github/detail-review-comments-101.json' },
+  [GH_REVIEWS]: { file: 'github/detail-reviews-101.json' },
 };
 const ghArgs = (http, number = 101) => ({ http, auth: GH_AUTH, owner: 'acme-corp', repo: 'acme-api', number });
 
-test('githubDetail: description from body, general comments (all pages) then inline review comments', async () => {
+test('githubDetail: description from body, general comments (all pages), review summaries, then inline review comments', async () => {
   const { http, calls } = httpOver(GH_ROUTES);
   const d = await githubDetail(ghArgs(http));
   assert.match(d.description, /^## What\n/);
@@ -49,10 +51,13 @@ test('githubDetail: description from body, general comments (all pages) then inl
     { author: 'ada', bot: false, createdAt: '2026-11-10T09:00:00Z', body: 'Looks good, one question below.', path: null, line: null },
     { author: 'grace', bot: false, createdAt: '2026-11-10T09:30:00Z', body: 'Answered inline.', path: null, line: null },
     { author: 'acme-ci[bot]', bot: true, createdAt: '2026-11-10T08:15:00Z', body: 'Preview deployed: https://preview.example.com/101', path: null, line: null },
+    // Review summaries: only submitted ones with text; the empty approval and the pending review are skipped.
+    { author: 'linus', bot: false, createdAt: '2026-11-10T09:05:00Z', body: 'Looks good, two nits below.', path: null, line: null },
     { author: 'ada', bot: false, createdAt: '2026-11-10T09:10:00Z', body: 'Should this be `encodeURIComponent`?', path: 'src/login/redirect.ts', line: 12 },
     { author: 'linus', bot: false, createdAt: '2026-11-10T09:20:00Z', body: 'This line moved in the last push.', path: 'src/login/redirect.ts', line: 7 },
   ]);
-  assert.deepEqual(calls.map((c) => c.url).sort(), [GH_ISSUE_1, GH_ISSUE_2, GH_PULL, GH_REVIEW].sort());
+  assert.deepEqual(calls.map((c) => c.url).sort(), [GH_ISSUE_1, GH_ISSUE_2, GH_PULL, GH_REVIEW, GH_REVIEWS].sort());
+  assert.doesNotMatch(JSON.stringify(d), /APPROVED|COMMENTED|PENDING|state/i, 'no review state anywhere');
   for (const c of calls) {
     assert.equal(c.init.method, 'GET');
     assert.equal(c.init.headers.Authorization, GH_AUTH);
@@ -65,6 +70,7 @@ test('githubDetail: an empty body is a null description; no comments is an empty
     [`${GH}/pulls/102`]: { file: 'github/detail-pull-102.json' },
     [`${GH}/issues/102/comments?per_page=100`]: { body: [] },
     [`${GH}/pulls/102/comments?per_page=100`]: { body: [] },
+    [`${GH}/pulls/102/reviews?per_page=100`]: { body: [] },
   });
   assert.deepEqual(await githubDetail(ghArgs(http, 102)), { description: null, comments: [] });
 });

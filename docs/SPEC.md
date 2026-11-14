@@ -556,9 +556,10 @@ These are today's rules, with owner and workspace from the project file and repo
 
 A PR's description and comments, read only when the page asks (`GET /api/p/<id>/pr?id=<pr id>`), never during a round. Every call goes through `http.get` / `http.getAll` (GET only) with the host credential the rounds use (`secrets.auth(host, credential)`).
 
-- **GitHub** (owner from the project), the three in parallel:
+- **GitHub** (owner from the project), the four in parallel:
   - `GET /repos/{owner}/{repo}/pulls/{n}` → `body` as the description (empty → null);
   - `GET /repos/{owner}/{repo}/issues/{n}/comments?per_page=100`, all pages: general comments, `path` and `line` null;
+  - `GET /repos/{owner}/{repo}/pulls/{n}/reviews?per_page=100`, all pages: each submitted review with text (a review's summary, "Looks good, two nits below") is a general comment with `submitted_at` as its time. Reviews without text and pending reviews (no `submitted_at`) are skipped. The review state (approved, changes requested) is never exposed: approvals are a non-goal;
   - `GET /repos/{owner}/{repo}/pulls/{n}/comments?per_page=100`, all pages: inline comments, `path`, `line ?? original_line ?? null`.
 
   Author `user.login`, `bot` when `user.type` is `Bot`, `created_at`, `body`.
