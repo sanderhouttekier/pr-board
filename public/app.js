@@ -1,11 +1,17 @@
 // Browser glue: fetch the project snapshot and the tab data, keep UI state, render, poll.
 import * as derive from '/lib/derive.js';
 import * as fixPrompt from '/fix-prompt.js';
-import { createView } from '/view.js';
+import {
+  createView, togglePanel, panelTab, panelLoading, panelResult, panelOnSnapshot, panelModel, renderPanel,
+  clampPanelWidth, parsePanelWidth, PANEL_DEFAULT_W,
+} from '/view.js';
 
 const view = createView(derive, fixPrompt);
 const root = document.getElementById('app');
+const panelEl = document.getElementById('pr-panel');
 const STORE = 'pr-board:ui';
+const WIDTH_STORE = 'pr-board:panel-width';
+const WIDTH_STEP = 24;
 // The page only lives at /p/<id> (the server redirects /), except with no projects at all.
 const PROJECT_ID = /^\/p\/([a-z0-9][a-z0-9-]*)\/?$/.exec(location.pathname)?.[1] ?? null;
 const POLL_MS = 30_000;
@@ -50,6 +56,14 @@ let timer = null;
 let lastVm = null;
 let copiedTimer = null;
 let countdown = null; // the refresh button's countdown in the current render, see bindCountdown()
+// The PR detail panel (SPEC "Page", "PR detail panel"): state transitions live in view.js.
+let panel = null; // null while closed
+let panelSeq = 0; // request counter: only the latest request's answer is applied
+let panelHtml = '';
+let panelView = null; // `${id}|${tab}` of the current render, to keep the body's scroll position
+let preferredWidth = loadWidth(); // what the user chose (stored per browser)
+let panelWidth = PANEL_DEFAULT_W; // what fits the window right now
+let dragging = false;
 
 function draw() {
   if (unknown || !PROJECT_ID) {
@@ -64,7 +78,7 @@ function draw() {
   // innerHTML replaces the buttons, so put keyboard focus back on the same control.
   const focused = document.activeElement?.closest?.('button[data-action]');
   const was = focused ? [focused.dataset.action, focused.dataset.value] : null;
-  lastVm = view.viewModel(snapshot, { ...ui, now: Date.now() }, board);
+  lastVm = view.viewModel(snapshot, { ...ui, now: Date.now(), panelId: panel?.id ?? null }, board);
   document.title = lastVm.title;
   root.innerHTML = view.render(lastVm);
   bindCountdown();
@@ -101,7 +115,11 @@ async function poll() {
   else if (snap?.body) {
     unknown = false;
     snapshot = snap.body;
+    const next = panelOnSnapshot(panel, snapshot.prs);
+    panel = next.state;
+    if (next.refetch) loadDetail(); // silent: the old content stays until the new arrives
   }
+  paintPanel();
   const key = JSON.stringify([unknown, snapshot?.generatedAt, snapshot?.refreshing, snapshot?.nextAt, board]);
   if (key !== lastKey) {
     lastKey = key;
@@ -241,10 +259,183 @@ root.addEventListener('click', (event) => {
     case 'fix': toggle(ui.fixOpen, value); break;
     case 'fix-copy': copyPrompt(value); return;
     case 'refresh': refresh(); return;
+    case 'detail': toggleDetail(value); return;
     default: return;
   }
   draw();
 });
+
+// PR detail panel
+
+function loadWidth() {
+  try {
+    return parsePanelWidth(localStorage.getItem(WIDTH_STORE));
+  } catch {
+    return PANEL_DEFAULT_W;
+  }
+}
+
+function saveWidth() {
+  try {
+    localStorage.setItem(WIDTH_STORE, String(preferredWidth));
+  } catch {
+    // Storage blocked: the width still holds for this visit.
+  }
+}
+
+function syncGrip() {
+  panelEl.querySelector('.panel-grip')?.setAttribute('aria-valuenow', String(panelWidth));
+}
+
+// The applied width: the preference clamped to the window. The preference itself stays.
+function applyWidth(width) {
+  panelWidth = clampPanelWidth(width, window.innerWidth);
+  document.body.style.setProperty('--panel-w', `${panelWidth}px`);
+  syncGrip();
+}
+
+function setPreferred(width) {
+  applyWidth(width);
+  preferredWidth = panelWidth;
+  saveWidth();
+}
+
+// Writes the panel only when its HTML changed, so polls keep its scroll position and focus.
+function paintPanel() {
+  panelEl.hidden = !panel;
+  document.body.classList.toggle('panel-open', !!panel);
+  const html = renderPanel(panelModel(panel, Date.now()));
+  if (html === panelHtml) return;
+  const focused = panelEl.contains(document.activeElement) ? document.activeElement : null;
+  const was = focused?.classList.contains('panel-grip') ? ['grip']
+    : focused?.dataset?.action ? [focused.dataset.action, focused.dataset.value] : null;
+  const key = panel ? `${panel.id}|${panel.tab}` : null;
+  const scroll = key && key === panelView ? (panelEl.querySelector('.panel-body')?.scrollTop ?? 0) : 0;
+  panelHtml = html;
+  panelView = key;
+  panelEl.innerHTML = html;
+  syncGrip();
+  const body = panelEl.querySelector('.panel-body');
+  if (body) body.scrollTop = scroll;
+  if (!was) return;
+  const target = was[0] === 'grip' ? panelEl.querySelector('.panel-grip')
+    : [...panelEl.querySelectorAll('[data-action]')].find((el) => el.dataset.action === was[0] && el.dataset.value === was[1]);
+  target?.focus();
+}
+
+async function fetchDetail(id) {
+  try {
+    const res = await fetch(`/api/p/${PROJECT_ID}/pr?id=${encodeURIComponent(id)}`, { cache: 'no-store' });
+    let body = null;
+    try {
+      body = await res.json();
+    } catch {
+      // Not JSON: reported by status below.
+    }
+    if (res.ok && body) return { ok: true, body };
+    return { ok: false, error: body?.error || `HTTP ${res.status}` };
+  } catch {
+    return { ok: false, error: 'the board server is unreachable' };
+  }
+}
+
+// Starts a request for the open PR. Callers paint; the answer paints itself.
+async function loadDetail() {
+  if (!panel) return;
+  const seq = ++panelSeq;
+  const id = panel.id;
+  panel = panelLoading(panel, seq);
+  const result = await fetchDetail(id);
+  panel = panelResult(panel, seq, result);
+  paintPanel();
+}
+
+function caretOf(id) {
+  return [...root.querySelectorAll('.detail-btn')].find((el) => el.dataset.value === id) ?? null;
+}
+
+function toggleDetail(id) {
+  const pr = snapshot?.prs?.find((p) => p.id === id);
+  if (!pr) return;
+  const wasOpen = !!panel;
+  if (panel?.id === id) {
+    closePanel();
+    return;
+  }
+  panel = togglePanel(panel, pr);
+  loadDetail();
+  draw();
+  paintPanel();
+  if (!wasOpen) panelEl.querySelector('.panel-close')?.focus();
+}
+
+function closePanel() {
+  if (!panel) return;
+  const { id } = panel;
+  panel = null;
+  draw();
+  paintPanel();
+  caretOf(id)?.focus();
+}
+
+panelEl.addEventListener('click', (event) => {
+  if (event.target.closest('a')) return;
+  const el = event.target.closest('[data-action]');
+  if (!el || !panel) return;
+  switch (el.dataset.action) {
+    case 'panel-close': closePanel(); return;
+    case 'panel-tab': panel = panelTab(panel, el.dataset.value); break;
+    case 'panel-retry': loadDetail(); break;
+    default: return;
+  }
+  paintPanel();
+});
+
+// The grip: pointer drag (move and up on window, so a re-render mid-drag doesn't break it),
+// double-click to reset, arrow keys while focused.
+panelEl.addEventListener('pointerdown', (event) => {
+  if (event.button !== 0 || !event.target.closest('.panel-grip')) return;
+  event.preventDefault();
+  dragging = true;
+  document.body.classList.add('panel-dragging');
+});
+
+window.addEventListener('pointermove', (event) => {
+  if (dragging) applyWidth(window.innerWidth - event.clientX);
+});
+
+function endDrag() {
+  if (!dragging) return;
+  dragging = false;
+  document.body.classList.remove('panel-dragging');
+  setPreferred(panelWidth);
+}
+
+window.addEventListener('pointerup', endDrag);
+window.addEventListener('pointercancel', endDrag);
+
+panelEl.addEventListener('dblclick', (event) => {
+  if (event.target.closest('.panel-grip')) setPreferred(PANEL_DEFAULT_W);
+});
+
+panelEl.addEventListener('keydown', (event) => {
+  if (!event.target.closest('.panel-grip')) return;
+  if (event.key === 'ArrowLeft') setPreferred(panelWidth + WIDTH_STEP);
+  else if (event.key === 'ArrowRight') setPreferred(panelWidth - WIDTH_STEP);
+  else return;
+  event.preventDefault();
+});
+
+window.addEventListener('resize', () => applyWidth(preferredWidth));
+
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape' || !panel) return;
+  const t = event.target;
+  if (t?.closest?.('input, textarea, select') || t?.isContentEditable) return;
+  closePanel();
+});
+
+applyWidth(preferredWidth);
 
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') poll();

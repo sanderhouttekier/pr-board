@@ -209,6 +209,7 @@ For one-click access, open the page in Chrome and pick ⋮ → Cast, save and sh
 - **By repo**: one row per repo with open and mine counts and the worst problem.
 - **Signals per PR**: CI ok/failed/running, mergeable or conflict, "N behind", stacked on another PR (with "base merged: retarget" on GitHub; Bitbucket retargets by itself), the shared package lock signals, stale, draft and age.
 - **Warnings** (unknown keys, repos not found, the Bitbucket cap) show as a muted list under the chips.
+- **PR details**: the caret at the end of a row opens a side panel with the PR's description and comments (Escape closes it). Drag its left edge to resize it; the width is remembered per browser.
 
 A PR is **ready** when it isn't a draft, CI is ok (or absent), it has no conflict, and no warning applies.
 
