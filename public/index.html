@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Pull requests</title>
+<script>
+// Theme before first paint (SPEC "Page", "Theme"); app.js keeps it in sync after a switch.
+try {
+  const t = JSON.parse(localStorage.getItem('pr-board:ui'))?.theme;
+  if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+} catch {}
+</script>
 <link rel="stylesheet" href="/style.css">
 <script type="module" src="/app.js"></script>
 </head>

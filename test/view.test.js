@@ -2,7 +2,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import * as derive from '../src/derive.js';
-import { createView } from '../public/view.js';
+import { createView, normalizeTheme, THEMES } from '../public/view.js';
 import * as fixPrompt from '../public/fix-prompt.js';
 
 const DAY = 86_400_000;
@@ -880,5 +880,78 @@ describe('page: projects, header, banners and Tickets', () => {
       assert.equal(view.render(vm), '<div class="card state">Unknown project <code>gone</code>.<br><a href="/p/acme">Acme Shop</a>, <a href="/p/nova">Nova Labs</a></div>');
       assert.ok(!view.render(view.stateModel(two(), '<x>')).includes('<x>'), 'id escaped');
     });
+  });
+});
+
+describe('theme switcher', () => {
+  const groupOf = (h) => {
+    const start = h.indexOf('<div class="seg theme" role="group" aria-label="Theme">');
+    assert.ok(start >= 0, 'theme group present');
+    return h.slice(start, h.indexOf('</div>', start) + 6);
+  };
+
+  test('normalizeTheme keeps system, light and dark; anything else is system', () => {
+    assert.deepEqual(THEMES, ['system', 'light', 'dark']);
+    for (const t of THEMES) assert.equal(normalizeTheme(t), t);
+    for (const bad of [undefined, null, '', 'Dark', 'blue', 1, {}, ['dark']]) assert.equal(normalizeTheme(bad), 'system');
+  });
+
+  for (const theme of ['system', 'light', 'dark']) {
+    test(`header marks ${theme} as pressed`, () => {
+      const vm = view.viewModel(snapshot(), ui({ theme }));
+      assert.equal(vm.theme, theme);
+      const g = groupOf(view.render(vm));
+      for (const [value, label] of [['system', 'System theme'], ['light', 'Light theme'], ['dark', 'Dark theme']]) {
+        const re = new RegExp(`<button type="button" class="theme-btn" data-action="theme" data-value="${value}" aria-pressed="${value === theme}" aria-label="${label}" title="${label}"><svg `);
+        assert.match(g, re);
+      }
+      assert.equal((g.match(/aria-pressed="true"/g) ?? []).length, 1);
+    });
+  }
+
+  test('an unknown ui.theme renders as system', () => {
+    const vm = view.viewModel(snapshot(), ui({ theme: '"><script>' }));
+    assert.equal(vm.theme, 'system');
+    const h = view.render(vm);
+    assert.ok(!h.includes('<script>'));
+    assert.match(groupOf(h), /data-value="system" aria-pressed="true"/);
+  });
+
+  test('theme group sits after By ticket / By repo and before refresh', () => {
+    const h = view.render(view.viewModel(snapshot(), ui()));
+    const byView = h.indexOf('aria-label="Group by"');
+    const theme = h.indexOf('aria-label="Theme"');
+    const refresh = h.indexOf('data-action="refresh"');
+    assert.ok(byView >= 0 && byView < theme && theme < refresh);
+  });
+});
+
+describe('style.css theme tokens', () => {
+  const css = readFileSync(new URL('../public/style.css', import.meta.url), 'utf8');
+  const blockAfter = (marker) => {
+    const at = css.indexOf(marker);
+    assert.ok(at >= 0, `missing ${marker}`);
+    const open = css.indexOf('{', at + marker.length - 1);
+    const close = css.indexOf('}', open);
+    return css.slice(open + 1, close);
+  };
+  const props = (body) => Object.fromEntries([...body.matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]));
+
+  test('both dark token blocks declare the same custom properties and values', () => {
+    const media = props(blockAfter('@media (prefers-color-scheme: dark) {\n  :root:not([data-theme="light"]) {'));
+    const forced = props(blockAfter(':root[data-theme="dark"] {'));
+    assert.ok(Object.keys(media).length >= 10, 'dark tokens present');
+    assert.deepEqual(forced, media);
+  });
+
+  test('every prefers-color-scheme rule respects a forced theme', () => {
+    const uses = [...css.matchAll(/@media \(prefers-color-scheme: dark\) \{\s*([^{]+)\{/g)].map((m) => m[1].trim());
+    assert.ok(uses.length >= 1);
+    for (const sel of uses) assert.match(sel, /:not\(\[data-theme="light"\]\)/);
+  });
+
+  test('forced themes set color-scheme', () => {
+    assert.match(blockAfter(':root[data-theme="light"] {'), /color-scheme: light;/);
+    assert.match(blockAfter(':root[data-theme="dark"] {'), /color-scheme: dark;/);
   });
 });

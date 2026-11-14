@@ -3,7 +3,7 @@ import * as derive from '/lib/derive.js';
 import * as fixPrompt from '/fix-prompt.js';
 import {
   createView, togglePanel, panelTab, panelLoading, panelResult, panelOnSnapshot, panelModel, renderPanel,
-  clampPanelWidth, parsePanelWidth, PANEL_DEFAULT_W,
+  clampPanelWidth, parsePanelWidth, PANEL_DEFAULT_W, normalizeTheme,
 } from '/view.js';
 
 const view = createView(derive, fixPrompt);
@@ -30,16 +30,23 @@ function loadPrefs() {
 
 function savePrefs() {
   try {
-    localStorage.setItem(STORE, JSON.stringify({ mine: ui.mine, view: ui.view }));
+    localStorage.setItem(STORE, JSON.stringify({ mine: ui.mine, view: ui.view, theme: ui.theme }));
   } catch {
     // Storage blocked: the toggles still work for this visit.
   }
 }
 
 const prefs = loadPrefs();
+// Theme: `data-theme` on <html> when forced, none for system (index.html sets it before first paint).
+function applyTheme(theme) {
+  if (theme === 'system') document.documentElement.removeAttribute('data-theme');
+  else document.documentElement.setAttribute('data-theme', theme);
+}
+
 const ui = {
   mine: prefs.mine === true,
   view: prefs.view === 'repo' ? 'repo' : 'ticket',
+  theme: normalizeTheme(prefs.theme),
   attention: null,
   expandedRepos: new Set(),
   expandedGroups: new Set(),
@@ -252,6 +259,7 @@ root.addEventListener('click', (event) => {
   switch (action) {
     case 'mine': ui.mine = value === '1'; savePrefs(); break;
     case 'view': ui.view = value === 'repo' ? 'repo' : 'ticket'; savePrefs(); break;
+    case 'theme': ui.theme = normalizeTheme(value); applyTheme(ui.theme); savePrefs(); break;
     case 'attention': ui.attention = ui.attention === value ? null : value; break;
     case 'group': toggle(ui.expandedGroups, value); break;
     case 'repo': toggle(ui.expandedRepos, value); break;

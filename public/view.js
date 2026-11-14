@@ -39,7 +39,18 @@ const ICON_COPY = stroke(14, '<path d="M7 9.667a2.667 2.667 0 0 1 2.667 -2.667h8
 const ICON_CHECK = stroke(14, '<path d="M5 12l5 5l10 -10"/>', 'icon-check');
 const ICON_GITHUB = '<svg class="logo" width="16" height="16" viewBox="0 0 16 16" fill="currentColor" role="img"><title>GitHub</title><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>';
 const ICON_BITBUCKET = '<svg class="logo" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" role="img"><title>Bitbucket</title><path d="M.778 1.213a.768.768 0 0 0-.768.892l3.263 19.81c.084.5.515.868 1.022.873H19.95a.772.772 0 0 0 .77-.646l3.27-20.03a.768.768 0 0 0-.768-.891zM14.52 15.53H9.522L8.17 8.466h7.561z"/></svg>';
+// Theme icons (16×16, 1.6 stroke): monitor, sun, crescent moon.
+const themeIcon = (body) => `<svg class="icon-theme" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+const THEME_BUTTONS = [
+  ['system', 'System theme', themeIcon('<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8"/><path d="M12 16v4"/>')],
+  ['light', 'Light theme', themeIcon('<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M4.93 4.93l1.41 1.41"/><path d="M17.66 17.66l1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M4.93 19.07l1.41 -1.41"/><path d="M17.66 6.34l1.41 -1.41"/>')],
+  ['dark', 'Dark theme', themeIcon('<path d="M20 14.5a8 8 0 1 1 -10.5 -10.5a6.5 6.5 0 0 0 10.5 10.5z"/>')],
+];
 const logo = (host) => (host === 'github' ? ICON_GITHUB : host === 'bitbucket' ? ICON_BITBUCKET : '');
+
+// Theme choice (SPEC "Page", "Theme"): the stored value, normalised; anything unknown is system.
+export const THEMES = ['system', 'light', 'dark'];
+export const normalizeTheme = (t) => (THEMES.includes(t) ? t : 'system');
 
 const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ESC[c]);
@@ -286,6 +297,7 @@ export function createView(derive, fixPrompt) {
       loading: snapshot.generatedAt == null,
       view: ui.view === 'repo' ? 'repo' : 'ticket',
       mine: !!ui.mine,
+      theme: normalizeTheme(ui.theme),
       header: {
         title: pageTitle(project.title),
         rate: snapshot.rate ?? null,
@@ -377,9 +389,15 @@ export function createView(derive, fixPrompt) {
       + '<div class="controls">'
       + `<div class="seg" role="group" aria-label="Whose PRs">${seg('mine', '1', 'Mine', vm.mine)}${seg('mine', '0', 'All', !vm.mine)}</div>`
       + `<div class="seg" role="group" aria-label="Group by">${seg('view', 'ticket', 'By ticket', vm.view === 'ticket')}${seg('view', 'repo', 'By repo', vm.view === 'repo')}</div>`
+      + renderThemeGroup(vm.theme)
       + renderRefreshButton(h)
       + '</div>'
       + '</header>';
+  }
+
+  function renderThemeGroup(theme) {
+    const buttons = THEME_BUTTONS.map(([value, label, icon]) => `<button type="button" class="theme-btn" data-action="theme" data-value="${esc(value)}" aria-pressed="${value === theme}" aria-label="${esc(label)}" title="${esc(label)}">${icon}</button>`);
+    return `<div class="seg theme" role="group" aria-label="Theme">${buttons.join('')}</div>`;
   }
 
   function renderRefreshButton(h) {

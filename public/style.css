@@ -17,8 +17,13 @@
   --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
+/* Theme (SPEC "Page", "Theme"): light tokens above; dark tokens when the OS is dark and the page
+   is not forced light, or when it is forced dark. Same values twice (no build step); a test keeps
+   the two blocks in sync. */
+:root[data-theme="light"] { color-scheme: light; }
+
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #111317;
     --surface: #191c21;
     --fg: #e6e8ec;
@@ -34,6 +39,24 @@
     --neutral: #aab3c0;
     --neutral-bg: #252a31;
   }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #111317;
+  --surface: #191c21;
+  --fg: #e6e8ec;
+  --muted: #98a1ae;
+  --line: #2a2f37;
+  --hover: #20242a;
+  --success: #5cc28f;
+  --success-bg: #15301f;
+  --danger: #f2827a;
+  --danger-bg: #3a1916;
+  --warning: #e3b341;
+  --warning-bg: #33290f;
+  --neutral: #aab3c0;
+  --neutral-bg: #252a31;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -176,6 +199,16 @@ h1 {
   color: var(--muted);
   font-size: 13px;
 }
+
+.seg .theme-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(1.45em + 6px); /* the text segments' height: one 13 px line + padding */
+  padding: 0 7px;
+}
+
+.seg .theme-btn svg { display: block; }
 
 .seg button[aria-pressed="true"] {
   background: var(--surface);
