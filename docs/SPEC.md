@@ -701,6 +701,8 @@ Everything from the current page stays (mockup v2): the layout, chips, rows, the
   - the header shows the Ticket label as a link (when `url`) with the external-link icon, the Jira summary and status chip (only when the matcher names a Jira site), and "ready N of M";
   - branch groups and "Other PRs" are unchanged.
 
+- **Theme.** A third segmented group in the header controls (`aria-label="Theme"`), after By ticket / By repo and before the refresh button: three icon-only buttons (monitor, sun, moon) for `system`, `light` and `dark`, `aria-pressed` on the current one. `system` is the default and follows `prefers-color-scheme`, also live when the OS switches; `light` and `dark` force it. The choice is kept per browser in `localStorage` under `pr-board:ui` next to `mine` and `view` (missing, unknown or blocked → `system`) and applies at once. Forced themes set `data-theme="light|dark"` on `<html>` (no attribute for system); the CSS keeps the light tokens on `:root` and the dark ones twice, under `@media (prefers-color-scheme: dark)` for `:root:not([data-theme="light"])` and for `:root[data-theme="dark"]` (a test keeps them equal), with `color-scheme` set per forced theme. A small inline script in `<head>`, before the stylesheet, sets `data-theme` from storage so a reload doesn't flash. The no-projects and unknown-project states have no header, so no switcher, but follow the stored theme.
+
 Polling: the snapshot and `/api/projects` every 30 s (3 s while refreshing), only while the tab is visible, as today. When `nextAt` comes sooner, the page polls one second after it instead, so the countdown hands over to the refreshing state on time.
 
 ### PR detail panel

@@ -205,6 +205,7 @@ For one-click access, open the page in Chrome and pick ⋮ → Cast, save and sh
 - **Project tabs** (with two or more projects): "Acme (2)" counts your PRs that need attention. A tab on the hourly rate adds the data's age ("· 40 min"). "!" in the warning colour means that project has an error; open the tab to read it.
 - **Attention chips**: CI failing, Conflicts, Stacked trap, Lock bump due, Stale. Click one to filter.
 - **Mine / All** and **By ticket / By repo** toggles, remembered in the browser.
+- **Theme**: System (follows your OS), Light or Dark, from the three icons in the header; remembered in the browser.
 - **By ticket**: one card per Ticket, with its link, the Jira summary and status (when the matcher names a Jira site) and "ready N of M". PRs without a Ticket that share a branch form a card named after the branch; the rest are in "Other PRs". Release PRs (develop → main and similar) are folded away at the bottom.
 - **By repo**: one row per repo with open and mine counts and the worst problem.
 - **Signals per PR**: CI ok/failed/running, mergeable or conflict, "N behind", stacked on another PR (with "base merged: retarget" on GitHub; Bitbucket retargets by itself), the shared package lock signals, stale, draft and age.
